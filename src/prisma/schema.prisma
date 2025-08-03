@@ -1,0 +1,241 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Member {
+  id             Int             @id @default(autoincrement())
+  memberNumber   Int             @unique
+  etNumber       Int             @unique
+  name           String
+  email          String?         
+  phone          String?         
+  division       String?
+  department     String?
+  section        String?
+  group          String?
+  transactions   Transaction[]
+  savings        Savings[]
+  loans          Loan[]
+  history        MemberHistory[]
+  balance        MemberBalance?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  user           User?           @relation(fields: [userId], references: [id])
+  userId         Int?            @unique
+
+  @@index([name])
+  @@index([division])
+  @@index([department])
+  @@index([section])
+  @@index([group])
+}
+
+
+model MemberHistory {
+  id            Int      @id @default(autoincrement())
+  memberId      Int
+  changeDate    DateTime @default(now())
+  effectiveDate DateTime
+  fieldName     String
+  oldValue      String?
+  newValue      String?
+  member        Member   @relation(fields: [memberId], references: [id])
+}
+
+model MembershipRequest {
+  id         Int      @id @default(autoincrement())
+  name       String
+  email      String
+  phone      String
+  department String
+  status     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model MemberBalance {
+  id                  Int      @id @default(autoincrement())
+  memberId            Int      @unique
+  totalSavings        Decimal  @default(0.00)
+  totalContributions  Decimal  @default(0.00)
+  costOfShare         Decimal  @default(0.00)
+  registrationFee     Decimal  @default(0.00)
+  membershipFee       Decimal  @default(0.00)
+  willingDeposit      Decimal  @default(0.00)
+  member              Member   @relation(fields: [memberId], references: [id])
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Savings {
+  id          Int      @id @default(autoincrement())
+  memberId    Int
+  amount      Decimal
+  savingsDate DateTime @default(now())
+  member      Member   @relation(fields: [memberId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Transaction {
+  id              Int             @id @default(autoincrement())
+  memberId        Int
+  type            TransactionType
+  amount          Decimal
+  reference       String?
+  transactionDate DateTime        @default(now())
+  member          Member          @relation(fields: [memberId], references: [id])
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([memberId, transactionDate])
+  @@index([type, transactionDate])
+}
+
+model Loan {
+  id             Int               @id @default(autoincrement())
+  memberId       Int
+  amount         Decimal
+  remainingAmount Decimal?
+  interestRate   Decimal
+  tenureMonths   Int
+  status         LoanApprovalStatus
+  approvalLogs   LoanApprovalLog[]
+  loanRepayments LoanRepayment[]
+  loanDocuments  LoanDocument[]
+  member         Member            @relation(fields: [memberId], references: [id])
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+model LoanRepayment {
+  id            Int                 @id @default(autoincrement())
+  loanId        Int
+  amount        Decimal             // scheduled repayment
+  paidAmount    Decimal             @default(0) // total paid toward this scheduled repayment
+  repaymentDate DateTime            @default(now())
+  reference     String?
+  sourceType    RepaymentSourceType
+  status        RepaymentStatus     @default(PENDING)
+  loan          Loan                @relation(fields: [loanId], references: [id])
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+}
+
+
+model LoanApprovalLog {
+  id               Int                @id @default(autoincrement())
+  loanId           Int
+  approvedByUserId Int
+  role             UserRole
+  status           LoanApprovalStatus
+  approvalOrder    Int
+  comments         String?
+  approvalDate     DateTime           @default(now())
+  loan             Loan               @relation(fields: [loanId], references: [id])
+  user             User               @relation(fields: [approvedByUserId], references: [id])
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+}
+
+model LoanDocument {
+  id               Int      @id @default(autoincrement())
+  loanId           Int
+  uploadedByUserId Int
+  documentType     DocumentType
+  documentContent  Bytes
+  fileName         String
+  mimeType         String
+  documentUrl      String   // Add this line
+  uploadDate       DateTime @default(now())
+  loan             Loan     @relation(fields: [loanId], references: [id])
+  user             User     @relation(fields: [uploadedByUserId], references: [id])
+}
+
+model User {
+  id              Int               @id @default(autoincrement())
+  name            String
+  email           String            @unique
+  phone           String            @unique
+  password        String
+  role            UserRole
+  member          Member?
+  loanApprovals   LoanApprovalLog[]
+  uploadedDocs    LoanDocument[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  Notification Notification[]
+}
+
+
+enum TransactionType {
+  SAVINGS
+  MEMBERSHIP_FEE
+  REGISTRATION_FEE
+  COST_OF_SHARE
+  LOAN_REPAYMENT
+  PURCHASE
+  WILLING_DEPOSIT
+}
+
+enum LoanApprovalStatus {
+  APPROVED
+  DISBURSED
+  REJECTED
+  PENDING
+}
+
+enum UserRole {
+  MEMBER
+  ACCOUNTANT
+  MANAGER
+  SUPERVISOR
+  COMMITTEE
+}
+
+enum RepaymentSourceType {
+  ERP_PAYROLL
+  MANUAL_PAYMENT
+  BANK_TRANSFER
+}
+
+enum DocumentType {
+  AGREEMENT
+  COLLATERAL
+  OTHER
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String
+  message   String
+  type      NotificationType
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+enum NotificationType {
+  LOAN_APPLICATION_SUBMITTED
+  LOAN_STATUS_UPDATE
+  LOAN_DISBURSEMENT_READY
+  LOAN_REPAYMENT_DUE
+  LOAN_REPAYMENT_RECEIVED
+  SAVINGS_UPDATE
+  ACCOUNT_UPDATE
+  GENERAL
+}
+
+enum RepaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+}

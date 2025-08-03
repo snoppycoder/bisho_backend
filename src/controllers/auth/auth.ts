@@ -1,0 +1,108 @@
+import { jwtVerify, SignJWT } from "jose";
+import type { UserRole } from "@prisma/client";
+import type { Request, Response } from 'express';
+import cookie from "cookie";
+
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+const secretKey = new TextEncoder().encode(JWT_SECRET);
+
+export type JWTPayload = {
+	id?: number;
+	email?: string;
+	name?: string;
+	role: UserRole | "MEMBER";
+	etNumber?: number;
+	phone?: string;
+};
+
+export async function signJWT(payload: JWTPayload): Promise<string> {
+	const token = await new SignJWT(payload)
+		.setProtectedHeader({ alg: "HS256" })
+		.setIssuedAt()
+		.setExpirationTime("24h")
+		.sign(secretKey);
+
+	return token;
+}
+
+export async function verifyJWT(token: string): Promise<JWTPayload | null> {
+	try {
+		const { payload } = await jwtVerify(token, secretKey);
+		console.log(payload);
+		return payload as JWTPayload;
+	} catch (error) {
+		console.error("Auth: JWT verification failed", error);
+		return null;
+	}
+}
+
+export async function getSession(req: Request): Promise<JWTPayload | null> {
+  const cookies = cookie.parse(req.headers.cookie || "");
+  const token = cookies.token;
+  if (!token) return null;
+  return verifyJWT(token);
+}
+
+export function setAuthCookie(
+	token: string,
+	res: Response
+): Response {
+	
+    res.setHeader('Set-Cookie', cookie.serialize('token', token, {
+            httpOnly: true,
+            path: '/',
+            maxAge: 60 * 60 * 24,
+            sameSite: 'lax',
+            secure:  process.env.NODE_ENV === 'production'
+
+        }))
+    return res;
+}
+
+
+	
+
+export function removeAuthCookie(res: Response): Response {
+	const serializedCookie = cookie.serialize("token", '', {
+        httpOnly: true,
+        path: "/",
+        maxAge: 0,
+        sameSite:'lax'
+
+    })
+    res.setHeader('Set-Cookie', serializedCookie)
+	return res;
+}
+
+export function getTokenFromRequest(req: Request): string | null {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.split(' ')[1] : null;
+
+    return token || null;
+}
+
+export async function getUserFromRequest(
+	request: Request
+): Promise<JWTPayload | null> {
+	const token = getTokenFromRequest(request);
+	if (!token) return null;
+
+	return verifyJWT(token);
+}
+
+export function hasRequiredRole(
+	user: JWTPayload | null,
+	requiredRoles: (UserRole | "MEMBER")[]
+): boolean {
+	if (!user) return false;
+	const hasRole = requiredRoles.includes(user.role as UserRole);
+	console.log(
+		"Auth: Checking role",
+		user.role,
+		"against",
+		requiredRoles,
+		"Result:",
+		hasRole
+	);
+	return hasRole;
+}
