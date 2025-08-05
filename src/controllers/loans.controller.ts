@@ -4,10 +4,12 @@ import { getSession } from './auth/auth.js';
 import { LoanApprovalLog, LoanApprovalStatus, Prisma, UserRole} from '@prisma/client';
 import { sendNotification } from './notification/notification.controller.js';
 import fs  from "fs";
-import { mkdir, writeFile } from 'fs/promises';
+import { mkdir, readFile, writeFile } from 'fs/promises';
 import path from "path";
 import multer from 'multer'
 import { calculateLoan } from '../utils/calculate.js';
+import mime from 'mime-types';
+import { getContentType } from '../utils/getContentType.js';
 
 
 const loansRouter = express.Router();
@@ -179,6 +181,45 @@ loansRouter.get('/agreement-template', async(req, res) => {
 
 
  });
+loansRouter.get('/documents/:url', async(req, res) => {
+	const session = await getSession(req);
+	if (!session || !session.id) {
+		return res.status(401).json({ error: "Unauthorized" });
+	}
+	const url = req.params.url;
+	if (!url) {
+		return  res.status(400).json({error: "Missing URL parameter"});
+	}
+	try {
+		let buffer : Buffer;
+		let contentType: string;
+
+		if (url.startsWith("http://") || url.startsWith("https://")) {
+			const response = await fetch(url);
+			const arrayBuffer = await response.arrayBuffer();
+			buffer = Buffer.from(arrayBuffer);
+			contentType = response.headers.get("Content-Type") || "application/octet-stream";
+		}
+		else {
+			const filePath = path.join(process.cwd(), "public", url);
+			buffer = await readFile(filePath);
+			contentType = getContentType(filePath);
+
+		}
+		res.setHeader("Content-Type", contentType);
+		res.setHeader("Content-Disposition", "inline");
+		res.send(buffer);
+
+	}
+	catch(error) {
+		console.error("Error fetching document:", error);
+		return  res.status(500).json("Failed to fetch document");
+
+	}
+
+
+
+});
 
 loansRouter.post('/apply', upload.single('agreement'), async(req, res)=> {
 	const session = await getSession(req);
