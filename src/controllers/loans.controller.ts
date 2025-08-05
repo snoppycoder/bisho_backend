@@ -1,14 +1,14 @@
 import express from 'express'
-import { prisma } from '../config/prisma';
-import { getSession } from './auth/auth';
+import { prisma } from '../config/prisma.js';
+import { getSession } from './auth/auth.js';
 import { LoanApprovalLog, LoanApprovalStatus, UserRole} from '@prisma/client';
-import { sendNotification } from './notification/notification.controller';
+import { sendNotification } from './notification/notification.controller.js';
 
 
 const loansRouter = express.Router();
 const APPROVAL_HIERARCHY: UserRole[] = [UserRole.ACCOUNTANT, UserRole.MANAGER, UserRole.SUPERVISOR, UserRole.COMMITTEE];
-const APPROVAL_STATUS : LoanApprovalStatus[] = [LoanApprovalStatus.APPROVED_BY_ACCOUNTANT, LoanApprovalStatus.APPROVED_BY_MANAGER, LoanApprovalStatus.APPROVED_BY_SUPERVISOR, LoanApprovalStatus.APPROVED_BY_COMMITTEE, LoanApprovalStatus.DISBURSED]
-
+const APPROVAL_STATUS : LoanApprovalStatus[] = [LoanApprovalStatus.APPROVED_BY_ACCOUNTANT, LoanApprovalStatus.APPROVED_BY_MANAGER, LoanApprovalStatus.APPROVED_BY_SUPERVISOR, LoanApprovalStatus.APPROVED_BY_COMMITTEE, LoanApprovalStatus.DISBURSED];
+const MIN_COMMITTEE_APPROVAL = 2;
 
 
 loansRouter.get('/', async (req, res) => {
@@ -58,13 +58,23 @@ loansRouter.post('/:id/approve', async (req, res) => {
 	if (!session) return res.status(401).json({ error: "Unauthorized" });
 	const {status, comments} = req.body;
 	try {
+		
 		const loan = await prisma.loan.findUnique({
 			where: { id: Number.parseInt(id) },
 			include: { member: true },
 		});
+		
 		if (!loan) {
 			return res.status(404).json({ error: "Loan not found" });
 		}
+		if (status === "REJECTED") {
+			await sendNotification({
+				userId: loan.memberId,
+				title: 'Loan Rejected',
+				message: `Loan (ID: ${loan.id}) was rejected by ${session.role}.`,
+				type: 'LOAN_APPROVAL_UPDATE',
+			});
+	}
 		const loanApprovals = await prisma.loanApprovalLog.findMany({
 		where: { loanId: loan.id },
 		orderBy: { approvalOrder: 'asc' },
@@ -79,32 +89,55 @@ loansRouter.post('/:id/approve', async (req, res) => {
 			}
 			
 		}
-		//let us avoid duplicate approvals
-		if (loanApprovals.some(log => log.role === session.role)) {
-			return res.status(400).json({ error: `${session.role} has already approved this loan.` });
-		}
-		let newStatus = APPROVAL_STATUS[currentRoleIndex];
-		if (session.role === UserRole.COMMITTEE) {
-		const committeeApprovals = loanApprovals.filter(
-			log => log.role === UserRole.COMMITTEE
-		).length;
+		//let us avoid duplicate approvals if this isn't a committee role
+		if (session.role !== UserRole.COMMITTEE){
+			if (loanApprovals.some(log => log.role === session.role)) {
+				return res.status(400).json({ error: `${session.role} has already approved this loan.` });
+			}
 
-		if (committeeApprovals + 1 >= 2) {
-			newStatus = LoanApprovalStatus.DISBURSED;
 		}
-	}
-		if (newStatus === undefined) {
+		let committeeApprovedCount = 0;
+		let committeeRejectedCount = 0;
+
+		if (session.role === UserRole.COMMITTEE) {
+			committeeApprovedCount = loanApprovals.filter(
+				log => log.role === UserRole.COMMITTEE && log.status === LoanApprovalStatus.APPROVED_BY_COMMITTEE
+			).length;
+
+			committeeRejectedCount = loanApprovals.filter(
+				log => log.role === UserRole.COMMITTEE && log.status === LoanApprovalStatus.REJECTED_BY_COMMITTEE
+			).length;
+		}
+
+		let newStatus = APPROVAL_STATUS[currentRoleIndex];
+		let logStatus = newStatus;
+		if (session.role === UserRole.COMMITTEE) {
+			if (status === "REJECTED") {
+			logStatus = LoanApprovalStatus.REJECTED_BY_COMMITTEE;
+			newStatus = LoanApprovalStatus.REJECTED;
+			
+			} 
+			else {
+				logStatus = LoanApprovalStatus.APPROVED_BY_COMMITTEE;
+				committeeApprovedCount += 1;
+
+				if (committeeApprovedCount >= MIN_COMMITTEE_APPROVAL) {
+					newStatus = LoanApprovalStatus.DISBURSED;
+				}
+			}
+		}
+		if (logStatus === undefined) {
 			return res.status(400).json({ error: "Invalid approval status." });
 		}
 		const updatedLoan = await prisma.loan.update({
 			where: { id: Number.parseInt(id) },
 			data: {
-				status: newStatus,
+				status: logStatus,
 				approvalLogs: {
 					create: {
 						approvedByUserId: session.id,
 						role: session.role as LoanApprovalLog["role"],
-						status,
+						newStatus,
 						approvalOrder: currentRoleIndex + 1,
 						comments,
 					} as any,
@@ -112,8 +145,8 @@ loansRouter.post('/:id/approve', async (req, res) => {
 			},
 		});
 
-		const isFinalApprover = currentRoleIndex === APPROVAL_HIERARCHY.length - 1;
-    if (!isFinalApprover && newStatus !== LoanApprovalStatus.DISBURSED) {
+	const isFinalApprover = currentRoleIndex === APPROVAL_HIERARCHY.length - 1; 
+    if (!isFinalApprover && newStatus !== LoanApprovalStatus.DISBURSED) { //and the status is not disbursed
 	  const nextRole = APPROVAL_HIERARCHY[currentRoleIndex + 1];
 	  if (!nextRole) {
 		return res.status(400).json({ error: "Next approval role is undefined." });
@@ -123,6 +156,8 @@ loansRouter.post('/:id/approve', async (req, res) => {
 	  });
 
       for (const user of nextUsers) {
+		if (!updatedLoan.status.includes("REJECTED"))
+		{
         await sendNotification({
           userId: user.id,
           title:
@@ -131,7 +166,7 @@ loansRouter.post('/:id/approve', async (req, res) => {
               : 'Loan Needs Your Approval',
           message: `Loan (ID: ${loan.id}) has been approved by ${session.role} and awaits your approval.`,
           type: 'LOAN_APPROVAL_REQUIRED',
-        });
+        });}
       }
     }
 

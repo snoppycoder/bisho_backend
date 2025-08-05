@@ -1,7 +1,8 @@
 import express from 'express';
 import {Request, Response} from 'express'
+// import { getSession } from '../controllers/auth/auth';
 
-export default function identifyUser(req:Request, res: Response) {
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.startsWith("Bearer ")? authHeader.split(" ")[1] : req.cookies
+const identifyUser = async (req:Request, res:Response) => {
+    // const session = await getSession(req);
+    // if (!session) return res.status(401).json({ error: "Unauthorized" });
 }

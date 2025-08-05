@@ -1,14 +1,14 @@
 import express from 'express'
-import type { Request, Response } from 'express';
-import { prisma } from '../../config/prisma';
+import { prisma } from '../../config/prisma.js';
 import * as bcrypt from 'bcrypt';
-import { signJWT, setAuthCookie } from "./auth"
+import { signJWT, setAuthCookie } from "./auth.js"
 
 
 const authLoginRouter = express.Router();
 
 authLoginRouter.post('/', async (req, res) => {
     try {
+		const MEMBER_PHONE = 'password123';
         const {identifier, password} = req.body;
 
         if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier)) {
@@ -37,7 +37,8 @@ authLoginRouter.post('/', async (req, res) => {
 			};
            const token = await signJWT(payload);
 
-           const response = res.json({
+		   setAuthCookie(token, res)
+           return res.json({
 				user: {
 					id: user.id,
 					name: user.name,
@@ -46,9 +47,61 @@ authLoginRouter.post('/', async (req, res) => {
 				},
 				redirectUrl: "/dashboard",
 			});
+			
 
-            setAuthCookie(token, response)
         }
+		else {
+			const etNumber = Number.parseInt(identifier);
+			if (isNaN(etNumber)) {
+				return res.status(400).json(
+					{ error: "Invalid ET Number" },
+					
+				);
+			}
+
+			const member = await prisma.member.findUnique({
+				where: { etNumber },
+			});
+
+			if (!member || password !== MEMBER_PHONE) {
+				return res.status(401).json(
+					{ error: "Invalid credentials" },
+					
+				);
+			}
+
+			// Create JWT payload for members
+			const payload = {
+				id: member.id,
+				etNumber: member.etNumber,
+				role: "MEMBER" as const,
+				phone: MEMBER_PHONE,
+			};
+
+			// Sign JWT
+			const token = await signJWT(payload);
+			
+			
+			// Create response
+			setAuthCookie(token, res);
+			return res.json({
+				user: {
+					id: member.id,
+					etNumber: member.etNumber,
+					role: "MEMBER",
+					phone: MEMBER_PHONE,
+				},
+				redirectUrl: "/member",
+			});
+			
+
+			// Set auth cookie
+
+			
+
+			
+		}
+		
         
     }
     catch(error) {

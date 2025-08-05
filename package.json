@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "start": "nodemon dist/index.js",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "seed" : "node dist/prisma/seed.js"
   },
   "keywords": [],
   "author": "",

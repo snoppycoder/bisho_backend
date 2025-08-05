@@ -1,4 +1,4 @@
-import {prisma} from "../../config/prisma"
+import {prisma} from "../../config/prisma.js"
 import { Notification } from "@prisma/client";
 
 interface NotificationPayload {
