@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "build": "tsc && prisma generate",
-    "start": "nodemon dist/index.js",
+    "start": "node dist/index.js",
     "dev": "tsc --watch",
-    "seed": "node dist/prisma/seed.js"
+    "seed": "node dist/prisma/seed.js",
+    "postinstall": "prisma generate"
+
   },
   "keywords": [],
   "author": "",
