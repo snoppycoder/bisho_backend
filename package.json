@@ -4,7 +4,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && prisma generate",
     "start": "nodemon dist/index.js",
     "dev": "tsc --watch",
     "seed": "node dist/prisma/seed.js"
