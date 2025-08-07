@@ -4,8 +4,9 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "build": "tsc && npx prisma generate",
-    "start": "node dist/src/index.js",
+    "build": "tsc && npx prisma generate"
+,
+    "start": "node dist/index.js",
     "dev": "tsc --watch",
     "seed": "node dist/prisma/seed.js",
     "postinstall": "prisma generate"
