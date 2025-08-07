@@ -420,7 +420,7 @@ loansRouter.post('/calculate', async (req, res) => {
 	}
 })
 
-loansRouter.post('/:id/approve', async (req, res) => {
+loansRouter.post('/approve/:id', async (req, res) => {
 	const id = req.params.id;
 	const session = await getSession(req);
 	if (!session) return res.status(401).json({ error: "Unauthorized" });
@@ -549,7 +549,7 @@ loansRouter.post('/:id/approve', async (req, res) => {
 	
 
 });
-loansRouter.patch('/:id/status', async(req, res) => {
+loansRouter.patch('/status/:id', async(req, res) => {
 	const id = req.params.id;
 	const session = await getSession(req);
 	if (!session || session.role === "MEMBER") {
