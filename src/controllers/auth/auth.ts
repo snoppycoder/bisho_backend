@@ -53,7 +53,7 @@ export function setAuthCookie(
             path: '/',
             maxAge: 60 * 60 * 24,
             sameSite: 'none',
-            secure: false
+            secure: true
 
         }))
     return res;
