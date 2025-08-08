@@ -52,7 +52,7 @@ membersRouter.get("/loan-eligibility", async(req, res) => {
 		});
 	}
 	catch(err) {
-		console.log(err)
+		console.log("Eligibility " +err)
 		return res.json({error : err})
 	}
 
