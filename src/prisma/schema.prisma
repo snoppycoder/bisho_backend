@@ -186,6 +186,7 @@ enum TransactionType {
 
 enum LoanApprovalStatus {
   APPROVED_BY_COMMITTEE
+  APPROVED     //this status will be shown to the user the other approve_by are for the heirarchial approval
   APPROVED_BY_MANAGER
   APPROVED_BY_SUPERVISOR
   APPROVED_BY_ACCOUNTANT

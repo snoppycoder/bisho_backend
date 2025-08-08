@@ -7,9 +7,45 @@ import {
 	RepaymentStatus,
 	TransactionType,
 } from "@prisma/client";
+import { getSession } from './auth/auth.js';
 
 
 const membersRouter = express.Router();
+
+membersRouter.get("/loan-eligibility", async(req, res) => {
+	const session = await getSession(req);
+	if (!session || session.role !== "MEMBER") {
+		return res.status(401).json({ error: "Unauthorized" });
+	}
+
+	try {
+		
+		const member = await prisma.member.findUnique({
+			where: { id: session.id! },
+			include: {
+				balance: true,
+				loans: {
+					where: {
+						status: {
+							in: ["PENDING", "APPROVED", "DISBURSED"],
+						},
+					},
+				},
+			},
+		});
+
+		if (!member) {
+			return res.status(404).json({ error: "Member not found" });
+		}
+	}
+	catch(err) {
+		console.log(err)
+		return res.json({error : err})
+	}
+
+
+});
+
 
 
 export default  membersRouter
