@@ -40,6 +40,16 @@ membersRouter.get("/loan-eligibility", async(req, res) => {
 		if (!member) {
 			return res.status(404).json({ error: "Member not found" });
 		}
+		const monthlySalary = 15000; // This should be fetched from member.salary or similar field
+
+		const totalContribution = member.balance?.totalContributions || 0;
+		const hasActiveLoan = member.loans.length > 0;
+
+		return res.json({
+			totalContribution: Number(totalContribution),
+			monthlySalary,
+			hasActiveLoan,
+		});
 	}
 	catch(err) {
 		console.log(err)
