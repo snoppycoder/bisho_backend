@@ -1,5 +1,7 @@
 import {prisma} from "../../config/prisma.js"
 import { Notification } from "@prisma/client";
+import express from 'express';
+import { getSession, getUserFromRequest } from "../auth/auth.js";
 
 interface NotificationPayload {
 	userId: number | any;
@@ -7,6 +9,7 @@ interface NotificationPayload {
 	message: string;
 	type: string;
 }
+const notificationRouter = express.Router();
 
 export const sendNotification = async (payload: NotificationPayload) => {
 	try {
@@ -22,3 +25,31 @@ export const sendNotification = async (payload: NotificationPayload) => {
 		console.error("Error sending notification:", error);
 	}
 };
+notificationRouter.get('/', async (req, res) => {
+	try {
+		const session = await getSession(req);
+		if (!session) {
+			return res.status(401).json({error: "Unauthorized"});
+		}
+		const user = await getUserFromRequest(req)
+		if (!user) {
+			return res.status(401).json({error: "Unauthorized"});
+		}
+
+		const notifications = await prisma.notification.findMany({
+			where: {
+				userId: user.id!,
+			},
+			orderBy: {
+				createdAt: 'desc',
+			},
+    });
+	   return notifications
+	}
+	catch(err) {
+		console.log(err);
+		return res.status(400).json({error: "Error fetching your data"})
+	}
+
+});
+export default notificationRouter;

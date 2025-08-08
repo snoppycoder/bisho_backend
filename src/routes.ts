@@ -6,11 +6,13 @@ import membershipRouter from './controllers/membership.controller.js';
 import authLoginRouter from './controllers/auth/login.auth.js';
 import authLogoutRouter from './controllers/auth/logout.auth.js';
 import sessionRouter from './controllers/auth/session.auth.js';
+import notificationRouter from './controllers/notification/notification.controller.js';
 
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/loans', loansRouter);
 app.use('/api/members', membersRouter);
 app.use('/api/membership', membershipRouter);
+app.use('/api/notifications', notificationRouter);
 
 
 // Might add the auth routes
