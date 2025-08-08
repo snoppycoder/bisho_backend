@@ -37,7 +37,7 @@ export async function verifyJWT(token: string): Promise<JWTPayload | null> {
 }
 
 export async function getSession(req: Request): Promise<JWTPayload | null> {
-  const cookies = cookie.parse(req.headers.cookie || "");
+  const cookies = req.cookies || "";
   const token = cookies.token;
   if (!token) return null;
   return verifyJWT(token);
