@@ -21,7 +21,8 @@ membersRouter.get("/", async(req, res) => {
 	if (!session ) {
 		return res.status(401).json({ error: "Unauthorized" });
 	}
-	const url = new URL(req.url);
+	// const url = new URL(req.url);
+	const url = new URL(req.url, `http://${req.headers.host}`);
 	const effectiveDateStr = url.searchParams.get("effectiveDate");
 
 	let effectiveDate: Date;
