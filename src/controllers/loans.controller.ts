@@ -223,7 +223,7 @@ loansRouter.get('/documents/:url', async(req, res) => {
 
 loansRouter.post('/apply', upload.single('agreement'), async(req, res)=> {
 	const session = await getSession(req);
-	if (!session || session.role !== "MEMBER") {
+	if (!session) {
 		return res.status(401).json({ error: "Unauthorized" });
 	}
 	try{
