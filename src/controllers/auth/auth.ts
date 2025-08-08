@@ -53,7 +53,7 @@ export function setAuthCookie(
             path: '/',
             maxAge: 60 * 60 * 24,
             sameSite: 'lax',
-            secure:  process.env.NODE_ENV === 'production'
+            secure: false
 
         }))
     return res;
