@@ -14,7 +14,7 @@ const membersRouter = express.Router();
 
 membersRouter.get("/loan-eligibility", async(req, res) => {
 	const session = await getSession(req);
-	if (!session || session.role !== "MEMBER") {
+	if (!session ) {
 		return res.status(401).json({ error: "Unauthorized" });
 	}
 
