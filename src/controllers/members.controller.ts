@@ -14,11 +14,14 @@ const membersRouter = express.Router();
 
 membersRouter.get("/loan-eligibility", async(req, res) => {
 	const session = await getSession(req);
+	console.log(session?.role!)
 	if (!session ) {
+		
 		return res.status(401).json({ error: "Unauthorized" });
 	}
 
 	try {
+		
 		
 		const member = await prisma.member.findUnique({
 			where: { id: session.id! },
