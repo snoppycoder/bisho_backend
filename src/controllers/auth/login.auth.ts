@@ -76,6 +76,7 @@ authLoginRouter.post('/', async (req, res) => {
 				etNumber: member.etNumber,
 				role: "MEMBER" as const,
 				phone: MEMBER_PHONE,
+				name : member.name
 			};
 
 			// Sign JWT
@@ -90,7 +91,9 @@ authLoginRouter.post('/', async (req, res) => {
 					etNumber: member.etNumber,
 					role: "MEMBER",
 					phone: MEMBER_PHONE,
+					name : member.name
 				},
+
 				redirectUrl: "/member",
 			});
 			
