@@ -64,11 +64,11 @@ export function setAuthCookie(
 
 export function removeAuthCookie(res: Response): Response {
 	const serializedCookie = cookie.serialize("token", '', {
+		secure: true,
         httpOnly: true,
         path: "/",
         maxAge: 0,
-        sameSite:'lax'
-
+        sameSite:'none'
     })
     res.setHeader('Set-Cookie', serializedCookie)
 	return res;
