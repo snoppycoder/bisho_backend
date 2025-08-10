@@ -152,6 +152,7 @@ membersRouter.get("/", async(req, res) => {
 membersRouter.get("/:etNumber", async(req, res) => {
 	const etNumber = Number.parseInt(req.params.etNumber);
 	if (isNaN(etNumber)) {
+		console.log(etNumber)
 		return res.status(400).json(
 			{ error: "Invalid ET Number format" },
 			
@@ -383,7 +384,6 @@ membersRouter.get("/loan-eligibility", async(req, res) => {
 	const session = await getSession(req);
 	console.log(req.body)
 	if (!session ) {
-		
 		return res.status(401).json({ error: "Unauthorized" });
 	}
 
@@ -422,7 +422,6 @@ membersRouter.get("/loan-eligibility", async(req, res) => {
 		console.log("Eligibility " +err)
 		return res.json({error : err})
 	}
-
 
 });
 
