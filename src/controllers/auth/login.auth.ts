@@ -34,6 +34,7 @@ authLoginRouter.post('/', async (req, res) => {
 				email: user.email,
 				name: user.name,
 				role: user.role,
+				
 			};
            const token = await signJWT(payload);
 
