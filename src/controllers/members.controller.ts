@@ -381,7 +381,7 @@ membersRouter.get("/:etNumber", async(req, res) => {
 
 membersRouter.get("/loan-eligibility", async(req, res) => {
 	const session = await getSession(req);
-	
+	console.log(req.body)
 	if (!session ) {
 		
 		return res.status(401).json({ error: "Unauthorized" });
