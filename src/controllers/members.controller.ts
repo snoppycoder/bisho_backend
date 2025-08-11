@@ -195,6 +195,8 @@ membersRouter.get("/loan-eligibility", async(req, res) => {
 });
 membersRouter.get("/:etNumber/savings-and-transactions", async (req, res) => {
 	const user = await getUserFromRequest(req);
+	console.log("user " + user)
+	console.log("reqBody", req.body)
 	const etNumber = req.params.etNumber;
 	if (
 		!user ||
