@@ -181,45 +181,6 @@ loansRouter.get('/agreement-template', async(req, res) => {
 
 
  });
-loansRouter.get('/documents/:url', async(req, res) => {
-	const session = await getSession(req);
-	if (!session || !session.id) {
-		return res.status(401).json({ error: "Unauthorized" });
-	}
-	const url = req.params.url;
-	if (!url) {
-		return  res.status(400).json({error: "Missing URL parameter"});
-	}
-	try {
-		let buffer : Buffer;
-		let contentType: string;
-
-		if (url.startsWith("http://") || url.startsWith("https://")) {
-			const response = await fetch(url);
-			const arrayBuffer = await response.arrayBuffer();
-			buffer = Buffer.from(arrayBuffer);
-			contentType = response.headers.get("Content-Type") || "application/octet-stream";
-		}
-		else {
-			const filePath = path.join(process.cwd(), "public", url);
-			buffer = await readFile(filePath);
-			contentType = getContentType(filePath);
-
-		}
-		res.setHeader("Content-Type", contentType);
-		res.setHeader("Content-Disposition", "inline");
-		res.send(buffer);
-
-	}
-	catch(error) {
-		console.error("Error fetching document:", error);
-		return  res.status(500).json("Failed to fetch document");
-
-	}
-
-
-
-});
 
 loansRouter.post('/apply', upload.single('agreement'), async(req, res)=> {
 	const session = await getSession(req);
@@ -418,7 +379,276 @@ loansRouter.post('/calculate', async (req, res) => {
 			
 		);
 	}
-})
+});
+loansRouter.get('/documents', async(req, res) => {
+	const session = await getSession(req);
+	if (
+		!session ||
+		![
+			"ACCOUNTANT",
+			"COMMITTEE",
+			"MANAGER",
+			"SUPERVISOR",
+			"MEMBER",
+		].includes(session.role) 
+	){
+		return res.status(401).json({ error: "Unauthorized" });
+	}
+	try {
+		const documents = await prisma.loanDocument.findMany({
+			select: {
+				id: true,
+				loanId: true,
+				documentType: true,
+				fileName: true,
+				uploadDate: true,
+				documentUrl: true,
+			},
+			orderBy: { uploadDate: "desc" },
+		});
+		return res.json(documents);
+	} catch(error){
+		console.error("Error fetching document:", error);
+		return res.status(500).json(
+			{ error: "Internal server error" }
+			
+		);
+	}
+	
+});
+loansRouter.post('/documents', upload.single("file"), async (req, res) => {
+	const session = await getSession(req);
+	if (
+		!session ||
+		![
+			"ACCOUNTANT",
+			"COMMITTEE",
+			"MANAGER",
+			"SUPERVISOR",
+			"MEMBER",
+		].includes(session.role) 
+	){
+		return res.status(401).json({ error: "Unauthorized" });
+	}
+	try {
+		 
+		const file = req.file;
+		const documentType = req.body.documentType;
+  		const loanId = Number(req.body.loanId);
+
+		if (!file || !documentType || !loanId) {
+			return res.status(400).json(
+				{ error: "Missing required fields" },
+				
+			);
+		}
+
+		
+		const fileContent = file.buffer;
+
+		// Generate a unique document URL
+		const documentUrl = `/api/loans/documents/${Date.now()}-${file.originalname}`;
+
+		const document = await prisma.loanDocument.create({
+			data: {
+				loanId,
+				documentType,
+				fileName: file.originalname,
+				mimeType: file.mimetype,
+				documentContent: fileContent,
+				uploadedByUserId: session.id,
+				documentUrl, // Add the documentUrl field
+			} as any,
+		});
+
+		return res.json({
+			success: true,
+			documentId: document.id,
+			documentUrl: document.documentUrl,
+		});
+	} catch(error){
+		console.error("Error fetching document:", error);
+		return res.status(500).json(
+			{ error: "Internal server error" }
+			
+		);
+	}
+});
+loansRouter.get('/:id', async (req, res) => {
+	
+		const session = await getSession(req);
+	if (
+		!session || !session.id
+	)
+	{
+		return res.status(401).json({ error: "Unauthorized" });
+	}
+	const loanId = Number.parseInt( req.params.id);
+	if (!loanId) return res.status(401).json({ error: "Unauthorized" });
+
+	
+	try {
+		const loan = await prisma.loan.findUnique({
+			where: { id: loanId },
+			include: {
+				member: {
+					select: {
+						name: true,
+						etNumber: true,
+						user: {
+							select: {
+								email: true,
+								phone: true,
+							},
+						},
+					},
+				},
+				approvalLogs: {
+					include: {
+						user: {
+							select: {
+								name: true,
+							},
+						},
+					},
+					orderBy: {
+						approvalOrder: "asc",
+					},
+				},
+				loanRepayments: {
+					orderBy: {
+						repaymentDate: "asc",
+					},
+				},
+				loanDocuments: {
+					select: {
+						id: true,
+						documentType: true,
+						documentUrl: true,
+						fileName: true,
+						uploadDate: true,
+					},
+				},
+			},
+		});
+
+		if (!loan) {
+			return res.status(404).json({ error: "Loan not found" });
+		}
+
+		// Restructure the data to match the frontend expectations
+		const restructuredLoan = {
+			...loan,
+			member: {
+				...loan.member,
+				email: loan.member.user?.email,
+				phone: loan.member.user?.phone,
+			},
+		};
+
+		return res.json(restructuredLoan);
+
+	}
+
+	
+	catch(error){
+		console.error("Error fetching document:", error);
+		return res.status(500).json(
+			{ error: "Internal server error" }
+			
+		);
+	}
+
+});
+loansRouter.get('/documents/:id', async(req, res) => {
+	
+	const session = await getSession(req);
+	if (
+		!session ||
+		![
+			"ACCOUNTANT",
+			"COMMITTEE",
+			"MANAGER",
+			"SUPERVISOR",
+			"MEMBER",
+		].includes(session.role) 
+	){
+		return res.status(401).json({ error: "Unauthorized" });
+	}
+	try {
+		const documentId = req.params.id; 
+		const document = await prisma.loanDocument.findUnique({
+			where: { id: Number.parseInt(documentId) },
+		});
+		if (!document) {
+			return res.status(404).json({error : "Document not found!"})
+		}
+		if (session.role === "MEMBER") {
+			const loan = await prisma.loan.findUnique({
+				where: { id: document.loanId },
+				select: { memberId: true },
+		});
+		if (!loan || loan.memberId !== session.etNumber) {
+				return res.status(401).json({ error: "Unauthorized" });
+				
+			}
+		}
+		const response = res.type(document.mimeType)
+							.set(
+								"Content-Disposition",
+								`inline; filename="${document.fileName}`
+							)
+		return response;
+ 
+	}
+	catch(error){
+		console.error("Error fetching document:", error);
+		return res.status(500).json(
+			{ error: "Internal server error" }
+			
+		);
+	}
+
+});
+loansRouter.get('/documents/view', async(req, res) => {
+	const session = await getSession(req);
+	if (!session || !session.id) {
+		return res.status(401).json({ error: "Unauthorized" });
+	}
+	const url = req.query.url;
+    if (!url || typeof url !== "string") {
+        return res.status(400).json({ error: "Missing or invalid URL parameter" });
+    }
+	try {
+		let buffer : Buffer;
+		let contentType: string;
+
+		if (url.startsWith("http://") || url.startsWith("https://")) {
+			const response = await fetch(url);
+			const arrayBuffer = await response.arrayBuffer();
+			buffer = Buffer.from(arrayBuffer);
+			contentType = response.headers.get("Content-Type") || "application/octet-stream";
+		}
+		else {
+			const filePath = path.join(process.cwd(), "public", url);
+			buffer = await readFile(filePath);
+			contentType = getContentType(filePath);
+
+		}
+		res.setHeader("Content-Type", contentType);
+		res.setHeader("Content-Disposition", "inline");
+		res.send(buffer);
+
+	}
+	catch(error) {
+		console.error("Error fetching document:", error);
+		return  res.status(500).json("Failed to fetch document");
+
+	}
+
+
+
+});
 
 loansRouter.post('/approve/:id', async (req, res) => {
 
