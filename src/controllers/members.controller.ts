@@ -209,7 +209,7 @@ membersRouter.get("/:etNumber/savings-and-transactions", async (req, res) => {
 	}
 	try {
 		// Get the query parameters for filtering
-		const url = new URL(req.url);
+		const url = new URL(req.url, `${req.protocol}://${req.get('host')}`);
 		const period = url.searchParams.get("period") || "all";
 		const type = url.searchParams.get("type") || "all";
 
