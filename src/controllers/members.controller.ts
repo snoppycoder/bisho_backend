@@ -9,7 +9,7 @@ import {
 } from "@prisma/client";
 import { startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { DateTime } from 'luxon';
-import { getSession } from './auth/auth.js';
+import { getSession, getUserFromRequest } from './auth/auth.js';
 
 
 
@@ -149,10 +149,7 @@ membersRouter.get("/", async(req, res) => {
 
 
 });
-
-
-
-membersRouter.get("/loan-eligibility/", async(req, res) => {
+membersRouter.get("/loan-eligibility", async(req, res) => {
 	const session = await getSession(req);
 	console.log(req.body)
 	if (!session ) {
@@ -196,6 +193,176 @@ membersRouter.get("/loan-eligibility/", async(req, res) => {
 	}
 
 });
+membersRouter.get("/:etNumber/savings-and-transactions", async (req, res) => {
+	const user = await getUserFromRequest(req);
+	const etNumber = req.params.etNumber;
+	if (
+		!user ||
+		user.role !== "MEMBER" ||
+		user?.etNumber?.toString() !== etNumber
+	) {
+		return res.status(401).json({ error: "Unauthorized" });
+	}
+	try {
+		// Get the query parameters for filtering
+		const url = new URL(req.url);
+		const period = url.searchParams.get("period") || "all";
+		const type = url.searchParams.get("type") || "all";
+
+		// Calculate date range based on period
+		let startDate: Date | undefined;
+		const now = new Date();
+
+		if (period === "week") {
+			startDate = new Date(now);
+			startDate.setDate(now.getDate() - 7);
+		} else if (period === "month") {
+			startDate = new Date(now);
+			startDate.setMonth(now.getMonth() - 1);
+		} else if (period === "year") {
+			startDate = new Date(now);
+			startDate.setFullYear(now.getFullYear() - 1);
+		}
+
+		// Build the where clause for transactions
+		
+		const member = await prisma.member.findUnique({
+			where: { etNumber: Number.parseInt(etNumber) },
+		});
+		if (!member) {
+			return res.status(404).json({ error: "Member not found" });
+		}
+		const transactions = await prisma.transaction.findMany({
+			where: {
+				memberId: member.id,
+			},
+			orderBy: { transactionDate: "desc" },
+		});
+		const savingsTransactions = transactions.filter(
+			(t: any) => t.type === "SAVINGS"
+		);
+
+		console.log({
+			savingsTransactions,
+		});
+
+		const withdrawalTransactions = transactions.filter(
+			(t: any) => t.type === "WITHDRAWAL"
+		);
+
+		const totalDeposits = savingsTransactions.reduce(
+			(sum, t) => sum + Number(t.amount),
+			0
+		);
+
+		const totalWithdrawals = withdrawalTransactions.reduce(
+			(sum, t) => sum + Number(t.amount),
+			0
+		);
+
+		const totalSavings = totalDeposits - totalWithdrawals;
+
+		// Get monthly savings data for chart
+		const last6Months = Array.from({ length: 6 }, (_, i) => {
+			const date = new Date();
+			date.setMonth(date.getMonth() - i);
+			return {
+				month: date.toLocaleString("default", { month: "short" }),
+				year: date.getFullYear(),
+				monthIndex: date.getMonth(),
+				fullYear: date.getFullYear(),
+			};
+		}).reverse();
+
+		const monthlySavings = await Promise.all(
+			last6Months.map(async ({ month, year, monthIndex, fullYear }) => {
+				const startOfMonth = new Date(fullYear, monthIndex, 1);
+				const endOfMonth = new Date(fullYear, monthIndex + 1, 0);
+
+				const monthlyDeposits = await prisma.transaction.findMany({
+					where: {
+						memberId: Number.parseInt(etNumber),
+						type: { in: ["MEMBERSHIP_FEE", "WILLING_DEPOSIT", "SAVINGS"] },
+						transactionDate: {
+							gte: startOfMonth,
+							lte: endOfMonth,
+						},
+					},
+				});
+
+				const monthlyWithdrawals = await prisma.transaction.findMany({
+					where: {
+						memberId: Number.parseInt(etNumber),
+						type: "LOAN_REPAYMENT",
+						transactionDate: {
+							gte: startOfMonth,
+							lte: endOfMonth,
+						},
+					},
+				});
+
+				const deposits = monthlyDeposits.reduce(
+					(sum, t) => sum + Number(t.amount),
+					0
+				);
+				const withdrawals = monthlyWithdrawals.reduce(
+					(sum, t) => sum + Number(t.amount),
+					0
+				);
+
+				return {
+					month: `${month} ${year}`,
+					deposits,
+					withdrawals,
+					net: deposits - withdrawals,
+				};
+			})
+		);
+
+		// Get transaction type distribution for pie chart
+		const transactionTypes = await prisma.transaction.groupBy({
+			by: ["type"],
+			where: {
+				memberId: Number.parseInt(etNumber),
+			},
+			_sum: {
+				amount: true,
+			},
+		});
+
+		const typeDistribution = transactionTypes.map((type) => ({
+			name: type.type,
+			value: Number(type._sum.amount) || 0,
+		}));
+
+		return res.json({
+			totalSavings,
+			totalDeposits,
+			totalWithdrawals,
+			recentTransactions: transactions.slice(0, 10),
+			monthlySavings,
+			typeDistribution,
+			transactionCount: transactions.length,
+		});
+
+
+
+	}
+	catch(error) {
+		console.error("Error fetching member details:", error);
+		return res.status(500).json(
+			{
+				error: "Failed to fetch member details",
+				message: error instanceof Error ? error.message : "Unknown error",
+			},
+			
+		);
+
+	}
+
+
+});
+
 membersRouter.get("/:etNumber", async(req, res) => {
 	const etNumber = Number.parseInt(req.params.etNumber);
 	console.log(req.originalUrl)
