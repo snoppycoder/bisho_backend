@@ -59,7 +59,6 @@ loansRouter.get('/', async (req, res) => {
 
 });
 
-
 // updatestatus check
 loansRouter.get('/agreement-template', async(req, res) => {
 	
