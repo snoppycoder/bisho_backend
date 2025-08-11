@@ -149,6 +149,66 @@ membersRouter.get("/", async(req, res) => {
 
 
 });
+membersRouter.get('/loans', async(req, res) => {
+	const session = await getSession(req);
+
+	if (!session || session.role !== "MEMBER" || !session.id) {
+		return res.status(401).json("Unauthroized");
+
+	}
+	try {
+		const loans = await prisma.loan.findMany({
+			where: {
+				memberId: session.id,
+			},
+			include: {
+				approvalLogs: {
+					select: {
+						id: true,
+						status: true,
+						approvalDate: true,
+						comments: true,
+						role: true,
+					},
+					orderBy: {
+						approvalDate: "desc",
+					},
+				},
+				loanRepayments: {
+					select: {
+						id: true,
+						amount: true,
+						repaymentDate: true,
+						reference: true,
+						sourceType: true,
+						status: true,
+					},
+					orderBy: {
+						repaymentDate: "asc",
+					},
+				},
+			},
+			orderBy: {
+				createdAt: "desc",
+			},
+		});
+
+		return res.json(loans);
+
+	}
+	catch(error) {
+		console.error("Error fetching loan details:", error);
+		return res.status(500).json(
+			{
+				error: "Failed to fetch loans",
+				message: error instanceof Error ? error.message : "Unknown error",
+			},
+			
+		);
+
+	}
+
+});
 membersRouter.get("/loan-eligibility", async(req, res) => {
 	const session = await getSession(req);
 	console.log(req.body)
