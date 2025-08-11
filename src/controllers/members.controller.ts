@@ -194,14 +194,16 @@ membersRouter.get("/loan-eligibility", async(req, res) => {
 
 });
 membersRouter.get("/:etNumber/savings-and-transactions", async (req, res) => {
-	const user = await getUserFromRequest(req);
-	console.log("user " + user)
-	console.log("reqBody", req.body)
+	const session = await getSession(req);
+	if (!session) {
+		return res.status(401).json("Unauthroized");
+	}
+	
 	const etNumber = req.params.etNumber;
 	if (
-		!user ||
-		user.role !== "MEMBER" ||
-		user?.etNumber?.toString() !== etNumber
+		!session ||
+		session.role !== "MEMBER" ||
+		session?.etNumber?.toString() !== etNumber
 	) {
 		return res.status(401).json({ error: "Unauthorized" });
 	}
