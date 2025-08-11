@@ -149,6 +149,9 @@ membersRouter.get("/", async(req, res) => {
 
 
 });
+// membersRouter.post("/kyc-upload", async (req, res) => {
+
+// });
 membersRouter.get('/loans', async(req, res) => {
 	const session = await getSession(req);
 

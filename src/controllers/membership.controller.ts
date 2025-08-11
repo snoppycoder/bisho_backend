@@ -1,12 +1,6 @@
 import express from 'express'
 import type { Request, Response } from 'express';
 import { prisma } from '../config/prisma.js';
-import {
-    PrismaClient,
-	LoanApprovalStatus,
-	RepaymentStatus,
-	TransactionType,
-} from "@prisma/client";
 import { getSession } from './auth/auth.js';
 import { generateUniqueNumber } from '../utils/generateUnique.js';
 

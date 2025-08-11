@@ -25,7 +25,7 @@ loansRouter.get('/', async (req, res) => {
 	}
 	const searchTerm = (req.query.search || "").toString();
 	const status = req.query.status?.toString();
-	const sortBy = req.query.sortBy?.toString() || "createdBy";
+	const sortBy = req.query.sortBy?.toString() || "createdAt";
 	const sortOrder = req.query.sortOrder?.toString() || "desc";
 	const loanId = Number(searchTerm);
 	const idFilter = !isNaN(loanId) ? { id: { equals: loanId } } : undefined;
@@ -181,6 +181,42 @@ loansRouter.get('/agreement-template', async(req, res) => {
 
 
  });
+  loansRouter.get('/pending', async(req, res) => {
+	const session = await getSession(req);
+	if (!session || session.role !== "MEMBER") {
+		return res.status(401).json({ error: "Unauthorized" });
+	}
+	const userRole = session.role as UserRole;
+	let reqApprovalOrder : number = -1;
+	for (var i = 0; i < APPROVAL_HIERARCHY.length; i++) {
+		if (userRole === APPROVAL_HIERARCHY[i]) {
+			reqApprovalOrder = i;
+			break;
+		}
+	}
+	const pendingLoans = await prisma.loan.findMany({
+			where: {
+				status: "PENDING",
+				approvalLogs: {
+					some: {
+						approvalOrder: reqApprovalOrder,
+						status: "APPROVED",
+					},
+				},
+			},
+			include: {
+				member: true,
+				approvalLogs: {
+					orderBy: { approvalOrder: "desc" },
+					take: 1,
+				},
+			},
+		});
+
+		return res.json(pendingLoans);
+
+  });
+
 
 loansRouter.post('/apply', upload.single('agreement'), async(req, res)=> {
 	const session = await getSession(req);
