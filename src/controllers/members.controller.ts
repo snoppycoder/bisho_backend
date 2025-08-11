@@ -149,9 +149,56 @@ membersRouter.get("/", async(req, res) => {
 
 
 });
+
+
+
+membersRouter.get("/loan-eligibility/", async(req, res) => {
+	const session = await getSession(req);
+	console.log(req.body)
+	if (!session ) {
+		return res.status(401).json({ error: "Unauthorized" });
+	}
+
+	try {
+		
+		
+		const member = await prisma.member.findUnique({
+			where: { id: session.id! },
+			include: {
+				balance: true,
+				loans: {
+					where: {
+						status: {
+							in: ["PENDING", "APPROVED", "DISBURSED"],
+						},
+					},
+				},
+			},
+		});
+
+		if (!member) {
+			return res.status(404).json({ error: "Member not found" });
+		}
+		const monthlySalary = 15000; // This should be fetched from member.salary or similar field
+
+		const totalContribution = member.balance?.totalContributions || 0;
+		const hasActiveLoan = member.loans.length > 0;
+
+		return res.json({
+			totalContribution: Number(totalContribution),
+			monthlySalary,
+			hasActiveLoan,
+		});
+	}
+	catch(err) {
+		console.log("Eligibility " +err)
+		return res.json({error : err})
+	}
+
+});
 membersRouter.get("/:etNumber", async(req, res) => {
 	const etNumber = Number.parseInt(req.params.etNumber);
-	console.log(req.originalUrl);
+	console.log(req.originalUrl)
 	if (isNaN(etNumber)) {
 		console.log(etNumber)
 		return res.status(400).json(
@@ -379,53 +426,6 @@ membersRouter.get("/:etNumber", async(req, res) => {
 
 
 );
-
-
-membersRouter.get("/loan-eligibility/", async(req, res) => {
-	const session = await getSession(req);
-	console.log(req.body)
-	if (!session ) {
-		return res.status(401).json({ error: "Unauthorized" });
-	}
-
-	try {
-		
-		
-		const member = await prisma.member.findUnique({
-			where: { id: session.id! },
-			include: {
-				balance: true,
-				loans: {
-					where: {
-						status: {
-							in: ["PENDING", "APPROVED", "DISBURSED"],
-						},
-					},
-				},
-			},
-		});
-
-		if (!member) {
-			return res.status(404).json({ error: "Member not found" });
-		}
-		const monthlySalary = 15000; // This should be fetched from member.salary or similar field
-
-		const totalContribution = member.balance?.totalContributions || 0;
-		const hasActiveLoan = member.loans.length > 0;
-
-		return res.json({
-			totalContribution: Number(totalContribution),
-			monthlySalary,
-			hasActiveLoan,
-		});
-	}
-	catch(err) {
-		console.log("Eligibility " +err)
-		return res.json({error : err})
-	}
-
-});
-
 
 
 export default  membersRouter
