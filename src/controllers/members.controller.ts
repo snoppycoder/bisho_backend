@@ -151,7 +151,7 @@ membersRouter.get("/", async(req, res) => {
 });
 membersRouter.get("/:etNumber", async(req, res) => {
 	const etNumber = Number.parseInt(req.params.etNumber);
-	console.log(req.originalUrl)
+	console.log(req.originalUrl);
 	if (isNaN(etNumber)) {
 		console.log(etNumber)
 		return res.status(400).json(
