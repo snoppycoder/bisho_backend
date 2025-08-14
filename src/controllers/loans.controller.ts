@@ -543,8 +543,10 @@ loansRouter.get('/:id', async (req, res) => {
 						user: {
 							select: {
 								name: true,
+							
 							},
 						},
+						
 					},
 					orderBy: {
 						approvalOrder: "asc",
@@ -578,6 +580,7 @@ loansRouter.get('/:id', async (req, res) => {
 				...loan.member,
 				email: loan.member.user?.email,
 				phone: loan.member.user?.phone,
+				etNumber: loan.member.etNumber
 			},
 		};
 
