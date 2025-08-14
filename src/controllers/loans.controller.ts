@@ -92,7 +92,7 @@ loansRouter.get('/agreement-template', async(req, res) => {
  loansRouter.get('/approval-history', async(req, res) => {
 	console.log(req)
 	const session = await getSession(req);
-	if (!session || session.role !== "MEMBER") {
+	if (!session || session.role === "MEMBER") {
 		
 		return res.status(401).json({ error: "Unauthorized" });
 	}
