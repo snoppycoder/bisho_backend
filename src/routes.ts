@@ -7,6 +7,7 @@ import authLoginRouter from './controllers/auth/login.auth.js';
 import authLogoutRouter from './controllers/auth/logout.auth.js';
 import sessionRouter from './controllers/auth/session.auth.js';
 import notificationRouter from './controllers/notification/notification.controller.js';
+import adminSignupRouter from './controllers/auth/admin/signup.auth.js';
 
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/loans', loansRouter);
@@ -19,6 +20,7 @@ app.use('/api/notifications', notificationRouter);
 
 app.use('/api/auth/login', authLoginRouter)
 app.use('/api/auth/logout', authLogoutRouter)
-app.use('/api/auth/session', sessionRouter)
+app.use('/api/auth/session', sessionRouter);
+app.use("/api/auth/register", adminSignupRouter);
 
 
