@@ -214,8 +214,7 @@ loansRouter.get('/agreement-template', async(req, res) => {
 
 		return res.json(pendingLoans);
 
-  });
-
+});
 
 loansRouter.post('/apply', upload.single('agreement'), async(req, res)=> {
 	const session = await getSession(req);
@@ -399,7 +398,7 @@ loansRouter.get('/disbursed', async(req, res) => {
 		);
 	}
 
-})
+});
 loansRouter.post('/calculate', async (req, res) => {
 	try {
 		const body = req.body;
@@ -582,6 +581,9 @@ loansRouter.get('/:id', async (req, res) => {
 				phone: loan.member.user?.phone,
 				etNumber: loan.member.etNumber
 			},
+			loanRepayments: loan.loanRepayments || [],
+			approvalLogs: loan.approvalLogs || [],
+			loanDocuments: loan.loanDocuments || [],
 		};
 
 		return res.json(restructuredLoan);
