@@ -63,7 +63,7 @@ loansRouter.get('/', async (req, res) => {
 loansRouter.get('/agreement-template', async(req, res) => {
 	
 	const session = await getSession(req);
-	if (!session || session.role !== "MEMBER") {
+	if (!session || session.role === "MEMBER") {
 		return res.status(401).json({ error: "Unauthorized" });
 	}
 	try {
@@ -184,7 +184,7 @@ loansRouter.get('/agreement-template', async(req, res) => {
  });
   loansRouter.get('/pending', async(req, res) => {
 	const session = await getSession(req);
-	if (!session || session.role !== "MEMBER") {
+	if (!session || session.role === "MEMBER") {
 		return res.status(401).json({ error: "Unauthorized" });
 	}
 	const userRole = session.role as UserRole;
