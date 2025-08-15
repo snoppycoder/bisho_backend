@@ -27,14 +27,11 @@ export const sendNotification = async (payload: NotificationPayload) => {
 };
 notificationRouter.get('/', async (req, res) => {
 	try {
-		const session = await getSession(req);
-		if (!session) {
-			return res.status(401).json({error: "Unauthorized"});
-		}
-		const user = await getUserFromRequest(req)
+		const user = await getSession(req);
 		if (!user) {
 			return res.status(401).json({error: "Unauthorized"});
 		}
+		
 
 		const notifications = await prisma.notification.findMany({
 			where: {
