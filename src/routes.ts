@@ -8,12 +8,14 @@ import authLogoutRouter from './controllers/auth/logout.auth.js';
 import sessionRouter from './controllers/auth/session.auth.js';
 import notificationRouter from './controllers/notification/notification.controller.js';
 import adminSignupRouter from './controllers/auth/admin/signup.auth.js';
+import salaryRouter from './controllers/importSalary.controller.js';
 
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/loans', loansRouter);
 app.use('/api/members', membersRouter);
 app.use('/api/membership', membershipRouter);
 app.use('/api/notifications', notificationRouter);
+app.use('/api/importSalary', salaryRouter);
 
 
 // Might add the auth routes
