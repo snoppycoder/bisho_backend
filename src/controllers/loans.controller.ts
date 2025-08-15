@@ -696,7 +696,7 @@ loansRouter.post('/approve/:id', async (req, res) => {
 
   const id = req.params.id;
   const session = await getSession(req);
-  if (!session) return res.status(401).json({ error: "Unauthorized" });
+  if (!session || session.role === "MEMBER") return res.status(401).json({ error: "Unauthorized" });
 
   const { status, comments } = req.body;
   try {
@@ -713,7 +713,7 @@ loansRouter.post('/approve/:id', async (req, res) => {
         message: `Loan (ID: ${loan.id}) was rejected`,
         type: 'LOAN_APPROVAL_UPDATE',
       });
-    }
+	  }
 
     const loanApprovals = await prisma.loanApprovalLog.findMany({
       where: { loanId: loan.id },
