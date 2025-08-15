@@ -1,0 +1,7 @@
+Member Number,ET Number,e=>{let{column:t}=e;return(0,a.jsxs)(g.z,{variant:"ghost",onClick:()=>t.toggleSorting("asc"===t.getIsSorted()),children:["Name",(0,a.jsx)(i.Z,{className:"ml-2 h-4 w-4"})]})},Division,Department,Group,Effective Date,Current Month Savings,Total Contributions,Loan Repayments,Willing Deposit
+1,5410,Merertu Fekade Baylssa,Finance,,SR-Shop Support Finance Group,2025-02-28T21:00:00.000Z,5040.42,5890.42,0,0
+2,5414,Wudneh Zeleke Abate,Sales,Residential Direct Channel,SR-Service Center Group-Negele Borena,2025-02-28T21:00:00.000Z,8853.6,9153.6,0,0
+4,5419,Buzunesh Filfilu Demissie,Sales,Large and SOHO/SME Enterprise Management,NAAZ-Enterprise Sales Group,2025-02-28T21:00:00.000Z,6271.02,6271.02,0,0
+9,5432,Woinhareg Tolla Weyessa,Communication,Trade Marketing and Brand Management,Zonal POS Branding Group 2,2025-02-28T21:00:00.000Z,7234.5,11116.5,0,0
+10,5433,Solomon Gebre Medhin Meles,Sales,Residential Direct Channel,NER-Service Center Group-Mekaneselam,2025-02-28T21:00:00.000Z,6938.26,19878.260000000002,0,0
+15,5505,Meaza Berhe Adhanom,Finance,,NR-Shop Support Finance Group,2025-02-28T21:00:00.000Z,9049.46,15519.46,0,0
