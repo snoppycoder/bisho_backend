@@ -220,9 +220,10 @@ loansRouter.get('/agreement-template', async(req, res) => {
 
 loansRouter.post('/apply', upload.single('agreement'), async(req, res)=> {
 	const session = await getSession(req);
-	if (!session) {
+	if (!session || session.role !== "MEMBER") {
 		return res.status(401).json({ error: "Unauthorized" });
 	}
+	console.log(req.body)
 	try{
 	const {amount, interestRate, tenureMonths, purpose, coSigner1, coSigner2} = req.body;
 	const agreement = req.file;
