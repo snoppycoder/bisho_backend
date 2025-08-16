@@ -309,7 +309,7 @@ loansRouter.post('/apply', upload.single('agreement'), async(req, res)=> {
 				loanDocuments: {
 					create: {
 						documentType: "AGREEMENT",
-						documentContent: "",
+						documentContent: agreement.buffer,
 						uploadedByUserId: Number(process.env.ADMIN_ID || 1),
 						fileName: fileName,
 						mimeType: agreement.mimetype,
@@ -319,8 +319,8 @@ loansRouter.post('/apply', upload.single('agreement'), async(req, res)=> {
 				approvalLogs: {
 					create: {
 						approvedByUserId: Number(process.env.ADMIN_ID || 1),
-						role: "MEMBER",
-						status: "PENDING",
+						role: "MEMBER" as UserRole,
+						status: "PENDING" ,
 						approvalOrder: 0,
 						comments: `Loan application submitted. Purpose: ${purpose}. Co-signers: ${
 							coSigner1 ? `ID:${coSigner1}` : "None"
