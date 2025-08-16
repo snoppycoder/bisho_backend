@@ -21,6 +21,7 @@ model Member {
   transactions   Transaction[]
   savings        Savings[]
   loans          Loan[]
+  salary         Int              @default(0)   
   history        MemberHistory[]
   balance        MemberBalance?
   createdAt      DateTime        @default(now())
@@ -55,6 +56,7 @@ model MembershipRequest {
   department String
   etNumber   Int @unique
   approvalOrder Int @default(0)
+  salary         Int              @default(0) 
   signature  String 
   national_id String 
   status     String

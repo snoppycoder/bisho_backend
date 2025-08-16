@@ -16,7 +16,7 @@ const upload = multer({dest: 'userInfo/'})
 
 membershipRouter.post('/request', upload.fields([{ name: 'national_id' }, { name: 'signature' }]), async (req, res) => {
 	try {
-		const { name, email, phone, etNumber, department } = req.body;
+		const { name, email, phone, etNumber, department, salary } = req.body;
 		const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
 		const signaturePath = files['signature']?.[0]?.path ?? '';
@@ -31,6 +31,7 @@ membershipRouter.post('/request', upload.fields([{ name: 'national_id' }, { name
 				signature:signaturePath,  //this should be strings only file paths
 				national_id:nationalIdPath,
 				approvalOrder: 0,
+				salary,
 				department,
 				status: "PENDING",
 			},
@@ -156,6 +157,7 @@ membershipRouter.patch('/requests/:id', async(req, res) => {
 				const newMember = await prisma.member.create({
 					data: {
 						name: membershipRequest.name,
+						salary: membershipRequest.salary,
 						email: membershipRequest.email,
 						phone: membershipRequest.phone,
 						etNumber,
