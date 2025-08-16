@@ -255,7 +255,7 @@ loansRouter.post('/apply', upload.single('agreement'), async(req, res)=> {
 		if (!member) {
 			return res.status(404).json({ error: "Member not found" });
 		}
-		const monthlySalary = 15000; // This should come from member data
+		const monthlySalary = member.salary ; // This should come from member data
 		const maxLoanBasedOnSalary = monthlySalary * 30;
 		const hasActiveLoan = member.loans.length > 0;
 		const requiredContributionRate = hasActiveLoan ? 0.35 : 0.3;
