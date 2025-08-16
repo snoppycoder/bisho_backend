@@ -818,9 +818,10 @@ membersRouter.get("/:etNumber", async(req, res) => {
 	}
 	const session = await getSession(req);
 	if (!session ) {
-		
+
 		return res.status(401).json({ error: "Unauthorized" });
 	}
+	console.log(etNumber)
 	try {
 		const member = await prisma.member.findUnique({
 			where: { etNumber },
@@ -842,6 +843,7 @@ membersRouter.get("/:etNumber", async(req, res) => {
 				},
 			},
 		});
+		console.log(member)
 
 		if (!member) {
 			return res.status(404).json(
