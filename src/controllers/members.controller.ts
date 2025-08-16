@@ -112,8 +112,37 @@ membersRouter.get("/", async(req, res) => {
 				(loanRepaymentTransaction
 					? Number(loanRepaymentTransaction.amount)
 					: 0);
+			const loanRepayments = member.loans
+			?.flatMap((loan) => loan.loanRepayments)
+			.reduce((sum, repayment) => sum + Number(repayment.amount), 0) ?? 0;
 
-			return {
+			// return {
+			// 	id: member.id,
+			// 	memberNumber: member.memberNumber,
+			// 	etNumber: member.etNumber,
+			// 	name: member.name,
+			// 	division: member.division,
+			// 	department: member.department,
+			// 	section: member.section,
+			// 	group: member.group,
+			// 	effectiveDate: startDate.toISOString(),
+			// 	balance: {
+			// 		totalSavings: savingsTransaction
+			// 			? Number(savingsTransaction.amount)
+			// 			: 0,
+			// 		totalContributions: totalContributions,
+			// 		membershipFee: membershipFeeTransaction
+			// 			? Number(membershipFeeTransaction.amount)
+			// 			: 0,
+			// 		willingDeposit: willingDepositTransaction
+			// 			? Number(willingDepositTransaction.amount)
+			// 			: 0,
+			// 		loanRepayments: loanRepaymentTransaction
+			// 			? Number(loanRepaymentTransaction.amount)
+			// 			: 0,
+			// 	},
+			// };
+		return {
 				id: member.id,
 				memberNumber: member.memberNumber,
 				etNumber: member.etNumber,
@@ -124,20 +153,13 @@ membersRouter.get("/", async(req, res) => {
 				group: member.group,
 				effectiveDate: startDate.toISOString(),
 				balance: {
-					totalSavings: savingsTransaction
-						? Number(savingsTransaction.amount)
-						: 0,
-					totalContributions: totalContributions,
-					membershipFee: membershipFeeTransaction
-						? Number(membershipFeeTransaction.amount)
-						: 0,
-					willingDeposit: willingDepositTransaction
-						? Number(willingDepositTransaction.amount)
-						: 0,
-					loanRepayments: loanRepaymentTransaction
-						? Number(loanRepaymentTransaction.amount)
-						: 0,
-				},
+					totalSavings: member.balance?.totalSavings ?? 0,
+					totalContributions: member.balance?.totalContributions ?? 0,
+					membershipFee: member.balance?.membershipFee ?? 0,
+					willingDeposit: member.balance?.willingDeposit ?? 0,
+					loanRepayments
+					},
+
 			};
 		});
 
