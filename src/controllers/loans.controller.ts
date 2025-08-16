@@ -224,7 +224,7 @@ loansRouter.post('/apply', upload.single('agreement'), async(req, res)=> {
 		return res.status(401).json({ error: "Unauthorized" });
 	}
 	try{
-	const {amount, interestRate, tenureMonths, purpose, coSigner1, coSigner2,} = req.body;
+	const {amount, interestRate, tenureMonths, purpose, coSigner1, coSigner2} = req.body;
 	const agreement = req.file;
 	 if (!amount || !interestRate || !tenureMonths || !purpose || !agreement) {
       return res.status(400).json({ error: "Missing required fields" });
@@ -238,9 +238,9 @@ loansRouter.post('/apply', upload.single('agreement'), async(req, res)=> {
     if (tenure !== 120) {
       return res.status(400).json({ error: "Loan tenure must be 120 months (10 years)" });
     }
-	if (!session.id) return;
+	
 	const member = await prisma.member.findUnique({
-			where: { id: session.id },
+			where: { id: session.id! },
 			include: {
 				balance: true,
 				loans: {
@@ -329,6 +329,7 @@ loansRouter.post('/apply', upload.single('agreement'), async(req, res)=> {
 				},
 			},
 		});
+		if (!loan) throw Error("can't create the loan")
 		await prisma.notification.create({
 			data: {
 				userId: Number(process.env.ADMIN_ID || 1),
