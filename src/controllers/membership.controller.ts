@@ -31,7 +31,7 @@ membershipRouter.post('/request', upload.fields([{ name: 'national_id' }, { name
 				signature:signaturePath,  //this should be strings only file paths
 				national_id:nationalIdPath,
 				approvalOrder: 0,
-				salary: Number.parseInt(salary),
+				salary: salary,
 				department,
 				status: "PENDING",
 			},
