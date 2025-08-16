@@ -21,7 +21,7 @@ const membersRouter = express.Router();
 membersRouter.get("/", async(req, res) => {
 	const session = await getSession(req);
 	
-	if (!session || session.role === 'MEMBER' ) {
+	if (!session ) {
 		return res.status(401).json({ error: "Unauthorized" });
 	}
 	// const url = new URL(req.url);
