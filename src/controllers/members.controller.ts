@@ -846,7 +846,7 @@ membersRouter.get("/:etNumber", async(req, res) => {
 	console.log("here is the etNumber ", etNumber)
 	try {
 		const member = await prisma.member.findUnique({
-			where: { etNumber },
+			where: { etNumber: Number.parseInt(etNumber) },
 			include: {
 				balance: true,
 				savings: {
