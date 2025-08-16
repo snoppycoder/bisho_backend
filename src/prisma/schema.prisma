@@ -53,6 +53,10 @@ model MembershipRequest {
   email      String
   phone      String
   department String
+  etNumber   Int @unique
+  approvalOrder Int @default(0)
+  signature  String 
+  national_id String 
   status     String
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -192,6 +196,7 @@ enum LoanApprovalStatus {
   APPROVED_BY_ACCOUNTANT
   DISBURSED
   REJECTED_BY_COMMITTEE
+  REPAID
   REJECTED
   PENDING
 }

@@ -3,7 +3,7 @@ import { Notification } from "@prisma/client";
 import express from 'express';
 import { getSession, getUserFromRequest } from "../auth/auth.js";
 
-interface NotificationPayload {
+export interface NotificationPayload {
 	userId: number | any;
 	title: string;
 	message: string;

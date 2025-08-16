@@ -1,7 +1,7 @@
 import express from 'express'
 import { prisma } from '../config/prisma.js';
 import { getSession } from './auth/auth.js';
-import { LoanApprovalLog, LoanApprovalStatus, Prisma, UserRole} from '@prisma/client';
+import { LoanApprovalLog, Prisma,  LoanApprovalStatus, UserRole} from '@prisma/client';
 import { sendNotification } from './notification/notification.controller.js';
 import fs  from "fs";
 import { mkdir, readFile, writeFile } from 'fs/promises';
