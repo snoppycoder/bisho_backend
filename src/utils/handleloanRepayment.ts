@@ -23,17 +23,18 @@ export async function handleLoanRepayment(
 		orderBy: { createdAt: "desc" },
 	});
 
-	console.log({
-		activeLoan,
-		loanRepayments: activeLoan.loanRepayments,
-	});
-
+	
 	if (!activeLoan) {
 		console.log("No active loan found for the member");
 		return;
 		// continue;
 		// throw new Error("No active loan found for the member");
 	}
+	console.log({
+		activeLoan,
+		loanRepayments: activeLoan.loanRepayments,
+	});
+
 
 	let remainingAmount = repaymentAmount;
 
