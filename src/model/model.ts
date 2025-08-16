@@ -43,15 +43,15 @@ export interface Account {
 	account_type: string;
 }
 
-// interface TransactionDetails {
-// 	type: string;
-// 	amount?: number;
-// 	amount?: number;
-// 	interest?: number;
-// 	date?: string;
-// 	reference?: string;
-// 	journalId?: number;
-// }
+interface TransactionDetails {
+	type: string;
+	amount?: number;
+	
+	interest?: number;
+	date?: string;
+	reference?: string;
+	journalId?: number;
+}
 
 export interface JournalLineItem {
 	account_id: number;

@@ -21,7 +21,7 @@ const membersRouter = express.Router();
 membersRouter.get("/", async(req, res) => {
 	const session = await getSession(req);
 	
-	if (!session ) {
+	if (!session || session.role === 'MEMBER' ) {
 		return res.status(401).json({ error: "Unauthorized" });
 	}
 	// const url = new URL(req.url);
@@ -155,271 +155,379 @@ membersRouter.get("/", async(req, res) => {
 // membersRouter.post("/kyc-upload", async (req, res) => {
 
 // });
-membersRouter.post('/import', async (req, res ) => {
-	const ODOO_CONFIG = {
-	host: "116.202.104.180",
-	port: 8069,
-	db: "test",
-	username: "admin",
-	password: "admin",
-	commonPath: "/xmlrpc/2/common",
-	objectPath: "/xmlrpc/2/object",
-};
+// membersRouter.post('/import', async (req, res ) => {
+// 	const ODOO_CONFIG = {
+// 	host: "116.202.104.180",
+// 	port: 8069,
+// 	db: "test",
+// 	username: "admin",
+// 	password: "admin",
+// 	commonPath: "/xmlrpc/2/common",
+// 	objectPath: "/xmlrpc/2/object",
+// };
 
-const ACCOUNTS: Record<string, Account> = {
-	cash: { id: 102, code: "211002", name: "Cash", account_type: "asset_cash" },
-	bank: { id: 101, code: "211001", name: "Bank", account_type: "asset_cash" },
-	tradeDebtors: {
-		id: 9,
-		code: "221100",
-		name: "Trade Debtors",
-		account_type: "asset_receivable",
-	},
-	suspense: {
-		id: 5,
-		code: "220100",
-		name: "Suspense",
-		account_type: "asset_receivable",
-	},
-	otherDeposits: {
-		id: 38,
-		code: "305400",
-		name: "Other deposits",
-		account_type: "liability_current",
-	},
-	commercialLoan: {
-		id: 40,
-		code: "310300",
-		name: "Commercial Loan",
-		account_type: "liability_current",
-	},
-	salesIncome: {
-		id: 1,
-		code: "110000",
-		name: "Sales of Goods and Services",
-		account_type: "income",
-	},
-	exchangeGain: {
-		id: 98,
-		code: "120000",
-		name: "Foreign Exchange Currency Gain Account",
-		account_type: "income_other",
-	},
-	interestExpense: {
-		id: 97,
-		code: "643400",
-		name: "Payments of interest and bank charges on local debt",
-		account_type: "expense",
-	},
-	feeExpense: {
-		id: 81,
-		code: "625600",
-		name: "Fees and charges",
-		account_type: "expense",
-	},
-	equity: {
-		id: 42,
-		code: "401000",
-		name: "Share capital / equity",
-		account_type: "equity",
-	},
-	undistributedProfits: {
-		id: 109,
-		code: "999999",
-		name: "Undistributed Profits/Losses",
-		account_type: "equity_unaffected",
-	},
-	cashDifferenceGain: {
-		id: 106,
-		code: "999001",
-		name: "Cash Difference Gain",
-		account_type: "income_other",
-	},
-	cashDifferenceLoss: {
-		id: 107,
-		code: "999002",
-		name: "Cash Difference Loss",
-		account_type: "expense",
-	},
-};try {
-		const membersData: MemberData[] = await req.body;
-		const skipped: string[] = [];
-		const failed: string[] = [];
-		const importedCount = await prisma.$transaction(
-			async (prisma) => {
-				let count = 0;
-				const safeAmount = (val: any) => Number(val) || 0;
+// const ACCOUNTS: Record<string, Account> = {
+// 	cash: { id: 102, code: "211002", name: "Cash", account_type: "asset_cash" },
+// 	bank: { id: 101, code: "211001", name: "Bank", account_type: "asset_cash" },
+// 	tradeDebtors: {
+// 		id: 9,
+// 		code: "221100",
+// 		name: "Trade Debtors",
+// 		account_type: "asset_receivable",
+// 	},
+// 	suspense: {
+// 		id: 5,
+// 		code: "220100",
+// 		name: "Suspense",
+// 		account_type: "asset_receivable",
+// 	},
+// 	otherDeposits: {
+// 		id: 38,
+// 		code: "305400",
+// 		name: "Other deposits",
+// 		account_type: "liability_current",
+// 	},
+// 	commercialLoan: {
+// 		id: 40,
+// 		code: "310300",
+// 		name: "Commercial Loan",
+// 		account_type: "liability_current",
+// 	},
+// 	salesIncome: {
+// 		id: 1,
+// 		code: "110000",
+// 		name: "Sales of Goods and Services",
+// 		account_type: "income",
+// 	},
+// 	exchangeGain: {
+// 		id: 98,
+// 		code: "120000",
+// 		name: "Foreign Exchange Currency Gain Account",
+// 		account_type: "income_other",
+// 	},
+// 	interestExpense: {
+// 		id: 97,
+// 		code: "643400",
+// 		name: "Payments of interest and bank charges on local debt",
+// 		account_type: "expense",
+// 	},
+// 	feeExpense: {
+// 		id: 81,
+// 		code: "625600",
+// 		name: "Fees and charges",
+// 		account_type: "expense",
+// 	},
+// 	equity: {
+// 		id: 42,
+// 		code: "401000",
+// 		name: "Share capital / equity",
+// 		account_type: "equity",
+// 	},
+// 	undistributedProfits: {
+// 		id: 109,
+// 		code: "999999",
+// 		name: "Undistributed Profits/Losses",
+// 		account_type: "equity_unaffected",
+// 	},
+// 	cashDifferenceGain: {
+// 		id: 106,
+// 		code: "999001",
+// 		name: "Cash Difference Gain",
+// 		account_type: "income_other",
+// 	},
+// 	cashDifferenceLoss: {
+// 		id: 107,
+// 		code: "999002",
+// 		name: "Cash Difference Loss",
+// 		account_type: "expense",
+// 	},
+// };
+// try {
+// 		const membersData: MemberData[] = await req.body;
+// 		const skipped: string[] = [];
+// 		const failed: string[] = [];
+// 		const importedCount = await prisma.$transaction(
+// 			async (prisma) => {
+// 				let count = 0;
+// 				const safeAmount = (val: any) => Number(val) || 0;
 
-				for (const memberData of membersData) {
-					const memberNumber = memberData["Employee Number"];
-					const etNumber = memberData["ET Number"];
+// 				for (const memberData of membersData) {
+// 					const memberNumber = memberData["Employee Number"];
+// 					const etNumber = memberData["ET Number"];
 
-					if (isNaN(memberNumber) || isNaN(etNumber)) {
-						console.error(
-							`Invalid member number or ET number for member: ${memberData.Name}`
-						);
-						skipped.push(memberData.Name);
-						continue;
-					}
+// 					if (isNaN(memberNumber) || isNaN(etNumber)) {
+// 						console.error(
+// 							`Invalid member number or ET number for member: ${memberData.Name}`
+// 						);
+// 						skipped.push(memberData.Name);
+// 						continue;
+// 					}
 
-					const jsDate = new Date(
-						(memberData["Effective Date"] - 25569) * 86400 * 1000
-					);
+// 					const jsDate = new Date(
+// 						(memberData["Effective Date"] - 25569) * 86400 * 1000
+// 					);
 
-					// Upsert member
-					const member = await prisma.member.upsert({
-						where: { etNumber },
-						update: {
-							etNumber,
-							name: memberData.Name,
-							division: memberData.Division,
-							department: memberData.Department || null,
-							section: memberData.Section,
-							group: memberData.Group,
-						},
-						create: {
-							memberNumber,
-							etNumber,
-							name: memberData.Name,
-							division: memberData.Division,
-							department: memberData.Department || null,
-							section: memberData.Section,
-							group: memberData.Group,
-						},
-					});
+// 					// Upsert member
+// 					const member = await prisma.member.upsert({
+// 						where: { etNumber },
+// 						update: {
+// 							etNumber,
+// 							name: memberData.Name,
+// 							division: memberData.Division,
+// 							department: memberData.Department || null,
+// 							section: memberData.Section,
+// 							group: memberData.Group,
+// 						},
+// 						create: {
+// 							memberNumber,
+// 							etNumber,
+// 							name: memberData.Name,
+// 							division: memberData.Division,
+// 							department: memberData.Department || null,
+// 							section: memberData.Section,
+// 							group: memberData.Group,
+// 						},
+// 					});
 
-					// Create or update MemberBalance
-					await prisma.memberBalance.upsert({
-						where: { memberId: member.id },
-						update: {
-							totalSavings: {
-								increment: memberData["Credit Association Savings"],
-							},
-							costOfShare: {
-								increment: memberData["Credit Association Cost of Share"],
-							},
-							registrationFee: {
-								increment: memberData["Credit Association Registration Fee"],
-							},
-							membershipFee: {
-								increment: memberData["Credit Association Membership Fee"],
-							},
-							willingDeposit: {
-								increment: memberData["Credit Association Willing Deposit"],
-							},
-							totalContributions:
-								safeAmount(memberData["Credit Association Savings"]) +
-								safeAmount(memberData["Credit Association Cost of Share"]) +
-								safeAmount(memberData["Credit Association Registration Fee"]) +
-								safeAmount(memberData["Credit Association Purchases"]) +
-								safeAmount(memberData["Credit Association Loan Repayment"]),
-						},
-						create: {
-							memberId: member.id,
-							totalSavings: memberData["Credit Association Savings"],
-							costOfShare: memberData["Credit Association Cost of Share"],
-							registrationFee:
-								memberData["Credit Association Registration Fee"],
-							membershipFee: memberData["Credit Association Membership Fee"],
-							willingDeposit: memberData["Credit Association Willing Deposit"],
-							totalContributions:
-								memberData["Credit Association Savings"] +
-								memberData["Credit Association Cost of Share"] +
-								memberData["Credit Association Registration Fee"] +
-								memberData["Credit Association Purchases"] +
-								memberData["Credit Association Loan Repayment"],
-						},
-					});
+// 					// Create or update MemberBalance
+// 					await prisma.memberBalance.upsert({
+// 						where: { memberId: member.id },
+// 						update: {
+// 							totalSavings: {
+// 								increment: memberData["Credit Association Savings"],
+// 							},
+// 							costOfShare: {
+// 								increment: memberData["Credit Association Cost of Share"],
+// 							},
+// 							registrationFee: {
+// 								increment: memberData["Credit Association Registration Fee"],
+// 							},
+// 							membershipFee: {
+// 								increment: memberData["Credit Association Membership Fee"],
+// 							},
+// 							willingDeposit: {
+// 								increment: memberData["Credit Association Willing Deposit"],
+// 							},
+// 							totalContributions:
+// 								safeAmount(memberData["Credit Association Savings"]) +
+// 								safeAmount(memberData["Credit Association Cost of Share"]) +
+// 								safeAmount(memberData["Credit Association Registration Fee"]) +
+// 								safeAmount(memberData["Credit Association Purchases"]) +
+// 								safeAmount(memberData["Credit Association Loan Repayment"]),
+// 						},
+// 						create: {
+// 							memberId: member.id,
+// 							totalSavings: memberData["Credit Association Savings"],
+// 							costOfShare: memberData["Credit Association Cost of Share"],
+// 							registrationFee:
+// 								memberData["Credit Association Registration Fee"],
+// 							membershipFee: memberData["Credit Association Membership Fee"],
+// 							willingDeposit: memberData["Credit Association Willing Deposit"],
+// 							totalContributions:
+// 								memberData["Credit Association Savings"] +
+// 								memberData["Credit Association Cost of Share"] +
+// 								memberData["Credit Association Registration Fee"] +
+// 								memberData["Credit Association Purchases"] +
+// 								memberData["Credit Association Loan Repayment"],
+// 						},
+// 					});
 
-					// Handle loan repayment
-					if (memberData["Credit Association Loan Repayment"] > 0) {
-						try {
-							await handleLoanRepayment(
-								prisma,
-								member.id,
-								memberData["Credit Association Loan Repayment"],
-								jsDate,
-								"ERP_PAYROLL", // sourceType
-								`BULK_IMPORT_${jsDate.getTime()}`
-							);
-						} catch (error) {
-							// return;
-							// console.error(
-							// 	`Error processing loan repayment for member ${member.name}:`,
-							// 	error
-							// );
-							// Consider how you want to handle this error (e.g., continue processing other members or throw)
-						}
-					}
+// 					// Handle loan repayment
+// 					if (memberData["Credit Association Loan Repayment"] > 0) {
+// 						try {
+// 							await handleLoanRepayment(
+// 								prisma,
+// 								member.id,
+// 								memberData["Credit Association Loan Repayment"],
+// 								jsDate,
+// 								"ERP_PAYROLL", // sourceType
+// 								`BULK_IMPORT_${jsDate.getTime()}`
+// 							);
+// 						} catch (error) {
+// 							// return;
+// 							// console.error(
+// 							// 	`Error processing loan repayment for member ${member.name}:`,
+// 							// 	error
+// 							// );
+// 							// Consider how you want to handle this error (e.g., continue processing other members or throw)
+// 						}
+// 					}
 
-					// Create transactions
-					const transactions = [
-						{
-							type: "SAVINGS",
-							amount: memberData["Credit Association Savings"],
-						},
-						{
-							type: "MEMBERSHIP_FEE",
-							amount: memberData["Credit Association Membership Fee"],
-						},
-						{
-							type: "REGISTRATION_FEE",
-							amount: memberData["Credit Association Registration Fee"],
-						},
-						{
-							type: "COST_OF_SHARE",
-							amount: memberData["Credit Association Cost of Share"],
-						},
-						{
-							type: "PURCHASE",
-							amount: memberData["Credit Association Purchases"],
-						},
-						{
-							type: "WILLING_DEPOSIT",
-							amount: memberData["Credit Association Willing Deposit"],
-						},
-					];
+// 					// Create transactions
+// 					const transactions = [
+// 						{
+// 							type: "SAVINGS",
+// 							amount: memberData["Credit Association Savings"],
+// 						},
+// 						{
+// 							type: "MEMBERSHIP_FEE",
+// 							amount: memberData["Credit Association Membership Fee"],
+// 						},
+// 						{
+// 							type: "REGISTRATION_FEE",
+// 							amount: memberData["Credit Association Registration Fee"],
+// 						},
+// 						{
+// 							type: "COST_OF_SHARE",
+// 							amount: memberData["Credit Association Cost of Share"],
+// 						},
+// 						{
+// 							type: "PURCHASE",
+// 							amount: memberData["Credit Association Purchases"],
+// 						},
+// 						{
+// 							type: "WILLING_DEPOSIT",
+// 							amount: memberData["Credit Association Willing Deposit"],
+// 						},
+// 					];
 
-					const filteredTransactions = transactions.filter((t) => t.amount > 0);
+// 					const filteredTransactions = transactions.filter((t) => t.amount > 0);
 
-					await prisma.transaction.createMany({
-						data: filteredTransactions.map((t) => ({
-							memberId: member.id,
-							type: t.type as TransactionType,
-							amount: t.amount,
-							transactionDate: jsDate,
-						})),
-					});
+// 					await prisma.transaction.createMany({
+// 						data: filteredTransactions.map((t) => ({
+// 							memberId: member.id,
+// 							type: t.type as TransactionType,
+// 							amount: t.amount,
+// 							transactionDate: jsDate,
+// 						})),
+// 					});
 
-					const currentDate = new Date().toISOString().split("T")[0];
+// 					const currentDate = new Date().toISOString().split("T")[0];
 
-					for (const tx of filteredTransactions) {
-						await createJournalEntry({
-							type: mapToAccountingType(tx.type as TransactionType),
-							amount: Number(tx.amount),
-							interest: 50,
-							date: currentDate,
-							reference: `REF-${tx.type.toString()}-${member.name.toString()}-${currentDate}`,
-							journalId: 3,
-						});
-					}
+// 					for (const tx of filteredTransactions) {
+// 						await createJournalEntry({
+// 							type: mapToAccountingType(tx.type as TransactionType),
+// 							amount: Number(tx.amount),
+// 							interest: 50,
+// 							date: currentDate,
+// 							reference: `REF-${tx.type.toString()}-${member.name.toString()}-${currentDate}`,
+// 							journalId: 3,
+// 						});
+// 					}
 
-					count++;
-				}
+// 					count++;
+// 				}
 
-				return count;
-			},
-			{ timeout: 50000 }
-		);
+// 				return count;
+// 			},
+// 			{ timeout: 50000 }
+// 		);
 
-		return res.json({ importedCount, skipped, failed }); 
+// 		return res.json({ importedCount, skipped, failed }); 
+// 	}
+// 		catch(error) {
+// 			console.error("Error importing members:", error);
+// 			return res.json(
+// 			{ error: "Failed to import members", details: error })
+// 		}
+
+// });
+membersRouter.post("/import", async (req, res) => {
+  try {
+	const session = await getSession(req);
+
+    if (!session || session.role === 'MEMBER' ) {
+		return res.status(401).json({ error: "Unauthorized" });
 	}
-		catch(error) {
-			console.error("Error importing members:", error);
-			return res.json(
-			{ error: "Failed to import members", details: error })
-		}
+	const membersData = req.body
 
+    // Read Excel file
+    
+    const skipped: string[] = [];
+    const failed: string[] = [];
+    let importedCount = 0;
+
+    // Process each member sequentially to avoid transaction timeout
+    for (const memberData of membersData) {
+      try {
+        const memberNumber = Number(memberData["Employee Number"]);
+        const etNumber = Number(memberData["ET Number"]);
+        if (isNaN(memberNumber) || isNaN(etNumber)) {
+          skipped.push(memberData.Name);
+          continue;
+        }
+
+        const jsDate = new Date((memberData["Effective Date"] - 25569) * 86400 * 1000);
+
+        // Upsert member
+        const member = await prisma.member.upsert({
+          where: { etNumber },
+          update: {
+            etNumber,
+            name: memberData.Name,
+            division: memberData.Division,
+            department: memberData.Department || null,
+            section: memberData.Section,
+            group: memberData.Group,
+          },
+          create: {
+            memberNumber,
+            etNumber,
+            name: memberData.Name,
+            division: memberData.Division,
+            department: memberData.Department || null,
+            section: memberData.Section,
+            group: memberData.Group,
+          },
+        });
+
+        // Upsert member balance
+        const safeAmount = (val: any) => Number(val) || 0;
+        await prisma.memberBalance.upsert({
+          where: { memberId: member.id },
+          update: {
+            totalSavings: { increment: safeAmount(memberData["Credit Association Savings"]) },
+            costOfShare: { increment: safeAmount(memberData["Credit Association Cost of Share"]) },
+            registrationFee: { increment: safeAmount(memberData["Credit Association Registration Fee"]) },
+            membershipFee: { increment: safeAmount(memberData["Credit Association Membership Fee"]) },
+            willingDeposit: { increment: safeAmount(memberData["Credit Association Willing Deposit"]) },
+            totalContributions:
+              safeAmount(memberData["Credit Association Savings"]) +
+              safeAmount(memberData["Credit Association Cost of Share"]) +
+              safeAmount(memberData["Credit Association Registration Fee"]) +
+              safeAmount(memberData["Credit Association Purchases"]) +
+              safeAmount(memberData["Credit Association Loan Repayment"]),
+          },
+          create: {
+            memberId: member.id,
+            totalSavings: safeAmount(memberData["Credit Association Savings"]),
+            costOfShare: safeAmount(memberData["Credit Association Cost of Share"]),
+            registrationFee: safeAmount(memberData["Credit Association Registration Fee"]),
+            membershipFee: safeAmount(memberData["Credit Association Membership Fee"]),
+            willingDeposit: safeAmount(memberData["Credit Association Willing Deposit"]),
+            totalContributions:
+              safeAmount(memberData["Credit Association Savings"]) +
+              safeAmount(memberData["Credit Association Cost of Share"]) +
+              safeAmount(memberData["Credit Association Registration Fee"]) +
+              safeAmount(memberData["Credit Association Purchases"]) +
+              safeAmount(memberData["Credit Association Loan Repayment"]),
+          },
+        });
+
+        // Handle loan repayment if needed
+        if (safeAmount(memberData["Credit Association Loan Repayment"]) > 0) {
+          await handleLoanRepayment(
+            prisma,
+            member.id,
+            safeAmount(memberData["Credit Association Loan Repayment"]),
+            jsDate,
+            "ERP_PAYROLL",
+            `BULK_IMPORT_${jsDate.getTime()}`
+          );
+        }
+
+        importedCount++;
+      } catch (err) {
+        failed.push(memberData.Name);
+        console.error(`Error importing member ${memberData.Name}:`, err);
+      }
+    }
+
+    return res.json({ importedCount, skipped, failed });
+  } catch (error) {
+    console.error("Error importing members:", error);
+    return res.status(500).json({ error: "Failed to import members", details: error });
+  }
 });
 membersRouter.get('/loans', async(req, res) => {
 	const session = await getSession(req);
@@ -508,7 +616,7 @@ membersRouter.get("/loan-eligibility", async(req, res) => {
 		if (!member) {
 			return res.status(404).json({ error: "Member not found" });
 		}
-		const monthlySalary = 15000; // This should be fetched from member.salary or similar field
+		const monthlySalary = member.salary; // This should be fetched from member.salary or similar field
 		const totalContribution = member.balance?.totalContributions || 0; // this will become 0 coelecing will return 0
 		const hasActiveLoan = member.loans.length > 0;
 
