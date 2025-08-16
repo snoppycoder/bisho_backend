@@ -294,7 +294,7 @@ membersRouter.get("/", async(req, res) => {
 // 						where: { memberId: member.id },
 // 						update: {
 // 							totalSavings: {
-// 								increment: memberData["Credit Association Savings"],
+// 							 memberData["Credit Association Savings"],
 // 							},
 // 							costOfShare: {
 // 								increment: memberData["Credit Association Cost of Share"],
@@ -476,11 +476,11 @@ membersRouter.post("/import", async (req, res) => {
         await prisma.memberBalance.upsert({
           where: { memberId: member.id },
           update: {
-            totalSavings: { increment: safeAmount(memberData["Credit Association Savings"]) },
-            costOfShare: { increment: safeAmount(memberData["Credit Association Cost of Share"]) },
-            registrationFee: { increment: safeAmount(memberData["Credit Association Registration Fee"]) },
-            membershipFee: { increment: safeAmount(memberData["Credit Association Membership Fee"]) },
-            willingDeposit: { increment: safeAmount(memberData["Credit Association Willing Deposit"]) },
+            totalSavings:  safeAmount(memberData["Credit Association Savings"]) ,
+            costOfShare:  safeAmount(memberData["Credit Association Cost of Share"]) ,
+            registrationFee:  safeAmount(memberData["Credit Association Registration Fee"]) ,
+            membershipFee:  safeAmount(memberData["Credit Association Membership Fee"]) ,
+            willingDeposit: safeAmount(memberData["Credit Association Willing Deposit"]) ,
             totalContributions:
               safeAmount(memberData["Credit Association Savings"]) +
               safeAmount(memberData["Credit Association Cost of Share"]) +
