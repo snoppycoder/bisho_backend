@@ -829,6 +829,76 @@ membersRouter.get("/:etNumber/savings-and-transactions", async (req, res) => {
 
 });
 
+membersRouter.get('/loan/:id', async (req, res) => {
+	const loanId = Number(req.params.id);
+	if (isNaN(loanId)) {
+		return res.status(400).json({ error: "Invalid loan ID" });
+	}
+	const session = await getSession(req);
+	if (!session || session.role !== 'MEMBER' || !session.id) {
+		return res.status(401).json("Unauthorized")
+	}
+	try {
+		const loan = await prisma.loan.findUnique({
+			where: {
+				id: loanId,
+				memberId: session.id,
+			},
+			include: {
+				approvalLogs: {
+					select: {
+						id: true,
+						status: true,
+						approvalDate: true,
+						comments: true,
+						role: true,
+					},
+					orderBy: {
+						approvalDate: "desc",
+					},
+				},
+				loanRepayments: {
+					// select: {
+					// 	id: true,
+					// 	amount: true,
+					// 	repaymentDate: true,
+					// 	reference: true,
+					// 	sourceType: true,
+					// 	status: true,
+					// },
+					orderBy: {
+						repaymentDate: "asc",
+					},
+				},
+				loanDocuments: {
+					select: {
+						id: true,
+						documentType: true,
+						documentUrl: true,
+						uploadDate: true,
+					},
+					orderBy: {
+						uploadDate: "desc",
+					},
+				},
+			},
+		});
+		if (!loan) {
+			return res.status(404).json({ error: "Loan not found" });
+		}
+
+		return res.json(loan);
+
+	}catch(error) {
+		console.error("Error fetching loan details:", error);
+		return res.status(500).json(
+			{ error: "Failed to fetch loan details" },
+			
+		);
+
+	}
+	
+});
 membersRouter.get("/:etNumber", async(req, res) => {
 	// const etNumber = Number.parseInt(req.params.etNumber);
 	const etNumber = Array.isArray(req.params.etNumber) ? req.params.etNumber[0] : req.params.etNumber;
