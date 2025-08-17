@@ -219,12 +219,55 @@ loansRouter.get('/pending', async(req, res) => {
 
 
 });
+loansRouter.get('/disbursed', async(req, res) => {
+	const session  = await getSession(req);
+	if(!session || session.role !== 'COMMITTEE') {
+		return res.status(401).json({ error: "Unauthorized" });
+	}
+	try {
+		const disbursedLoans = await prisma.loan.findMany({
+			where: {
+				// status: "DISBURSED",  temporary workaround
+				status: 'APPROVED',
+				order: 3,
+			},
+			include: {
+				member: {
+					select: {
+						name: true,
+						etNumber: true,
+					},
+				},
+				loanRepayments: {
+					select: {
+						id: true,
+						amount: true,
+						repaymentDate: true,
+						status: true,
+					},
+				},
+			},
+			orderBy: {
+				createdAt: "desc",
+			},
+		});
+
+		return res.json(disbursedLoans);
+	} catch (error) {
+		console.error("Error fetching disbursed loans:", error);
+		return res.status(500).json(
+			{ error: "Failed to fetch disbursed loans" },
+			
+		);
+	}
+
+})
 loansRouter.post('/apply', upload.single('agreement'), async(req, res)=> {
 	const session = await getSession(req);
 	if (!session || session.role !== "MEMBER") {
 		return res.status(401).json({ error: "Unauthorized" });
 	}
-	console.log(req.body)
+	
 	try{
 	const {amount, interestRate, tenureMonths, purpose, coSigner1, coSigner2} = req.body;
 	const agreement = req.file;
@@ -780,14 +823,19 @@ loansRouter.post('/approve/:id', async (req, res) => {
 	}
 
 	const lastApproved = loanApprovals[loanApprovals.length-1]!;
-	console.log(lastApproved)
+	
 	
 	// this can't be undefined or null
 	//we should take the committe approval
 	// 
 	if (lastApproved?.committeeApproval >= MIN_COMMITTEE_APPROVAL - 1) {
 		const updatedLoan = await prisma.loan.update({
-				where: { id: loan.id },
+				where: { 
+					id: loan.id,
+					
+
+
+				},
 				data: {
 					status: 'APPROVED',
 					approvalLogs: {
