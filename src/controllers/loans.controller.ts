@@ -514,7 +514,8 @@ loansRouter.post('/documents', upload.single("file"), async (req, res) => {
 });
 loansRouter.get('/:id', async (req, res) => {
 	
-		const session = await getSession(req);
+	const session = await getSession(req);
+	console.log(req)
 	if (
 		!session || !session.id
 	)
