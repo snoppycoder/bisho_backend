@@ -17,11 +17,57 @@ const APPROVAL_HIERARCHY: UserRole[] = [UserRole.ACCOUNTANT, UserRole.MANAGER, U
 const MIN_COMMITTEE_APPROVAL = 2;
 const upload = multer(); 
 
+// loansRouter.get('/', async (req, res) => {
+// 	const session = await getSession(req);
+// 	if (!session || session.role === "MEMBER") {
+// 		return res.status(401).json({error : "Unauthorized"})
+// 	}
+// 	const userRole = session.role;
+// 	const searchTerm = (req.query.search || "").toString();
+// 	const status = req.query.status?.toString();
+// 	const sortBy = req.query.sortBy?.toString() || "createdAt";
+// 	const sortOrder = req.query.sortOrder?.toString() || "desc";
+// 	const loanId = Number(searchTerm);
+// 	const idFilter = !isNaN(loanId) ? { id: { equals: loanId } } : undefined;
+// 	try {
+		
+// 		const loans = await prisma.loan.findMany({
+// 			where: {
+// 				OR: [
+// 					{ member: { name: { contains: searchTerm, mode: "insensitive" } } },
+// 					idFilter
+// 				].filter(Boolean) as any[],
+// 				status: status as any,
+// 			},
+// 			include: {
+// 				member: {
+// 					select: {
+// 						name: true,
+// 					},
+// 				},
+// 			},
+// 			orderBy: {
+// 				[sortBy]: sortOrder,
+// 			},
+// 		});
+// 		return res.status(200).json(loans);
+
+// 	}
+// 	catch(error) {
+// 		console.log(error);
+// 		return res.status(500).json({error : 'Internal Server Error'})
+// 	}
+
+// });
+
+// updatestatus check
+
 loansRouter.get('/', async (req, res) => {
 	const session = await getSession(req);
 	if (!session || session.role === "MEMBER") {
 		return res.status(401).json({error : "Unauthorized"})
 	}
+	const userRole = session.role;
 	const searchTerm = (req.query.search || "").toString();
 	const status = req.query.status?.toString();
 	const sortBy = req.query.sortBy?.toString() || "createdAt";
@@ -29,28 +75,151 @@ loansRouter.get('/', async (req, res) => {
 	const loanId = Number(searchTerm);
 	const idFilter = !isNaN(loanId) ? { id: { equals: loanId } } : undefined;
 	try {
+		if (userRole === 'ACCOUNTANT') {
 		const loans = await prisma.loan.findMany({
 			where: {
+			AND: [
+				{
 				OR: [
 					{ member: { name: { contains: searchTerm, mode: "insensitive" } } },
-					idFilter
+					idFilter,
 				].filter(Boolean) as any[],
-				status: status as any,
-			},
-			include: {
-				member: {
-					select: {
-						name: true,
+				},
+				{ status: 'APPROVED' }, // optional: filter only approved loans if needed
+				{
+				approvalLogs: {
+					some: {
+					approvalOrder: 0, 
 					},
 				},
+				},
+			],
+			},
+			include: {
+			member: {
+				select: {
+				name: true,
+				},
+			},
+			approvalLogs: true, // include logs if needed
 			},
 			orderBy: {
-				[sortBy]: sortOrder,
+			[sortBy]: sortOrder,
 			},
 		});
-		return res.status(200).json(loans);
 
+	return res.status(200).json(loans);
 	}
+	else if (userRole == 'SUPERVISOR') {
+		const loans = await prisma.loan.findMany({
+			where: {
+			AND: [
+				{
+				OR: [
+					{ member: { name: { contains: searchTerm, mode: "insensitive" } } },
+					idFilter,
+				].filter(Boolean) as any[],
+				},
+				{ status: 'APPROVED' }, // optional: filter only approved loans if needed
+				{
+				approvalLogs: {
+					some: {
+					approvalOrder: 1, // only loans with an approval log at order 0
+					},
+				},
+				},
+			],
+			},
+			include: {
+			member: {
+				select: {
+				name: true,
+				},
+			},
+			approvalLogs: true, // include logs if needed
+			},
+			orderBy: {
+			[sortBy]: sortOrder,
+			},
+		});
+
+  return res.status(200).json(loans);
+}
+
+	else if (userRole == 'MANAGER') {
+		const loans = await prisma.loan.findMany({
+			where: {
+			AND: [
+				{
+				OR: [
+					{ member: { name: { contains: searchTerm, mode: "insensitive" } } },
+					idFilter,
+				].filter(Boolean) as any[],
+				},
+				{ status: 'APPROVED' }, // optional: filter only approved loans if needed
+				{
+				approvalLogs: {
+					some: {
+					approvalOrder: 2, // only loans with an approval log at order 0
+					},
+				},
+				},
+			],
+			},
+			include: {
+			member: {
+				select: {
+				name: true,
+				},
+			},
+			approvalLogs: true, // include logs if needed
+			},
+			orderBy: {
+			[sortBy]: sortOrder,
+			},
+		});
+
+	return res.status(200).json(loans);
+	}
+	else if (userRole == 'COMMITTEE') {
+		const loans = await prisma.loan.findMany({
+			where: {
+			AND: [
+				{
+				OR: [
+					{ member: { name: { contains: searchTerm, mode: "insensitive" } } },
+					idFilter,
+				].filter(Boolean) as any[],
+				},
+				{ status: 'APPROVED' }, // optional: filter only approved loans if needed
+				{
+				approvalLogs: {
+					some: {
+					approvalOrder: 3, // only loans with an approval log at order 0
+					},
+				},
+				},
+			],
+			},
+			include: {
+			member: {
+				select: {
+				name: true,
+				},
+			},
+			approvalLogs: true, // include logs if needed
+			},
+			orderBy: {
+			[sortBy]: sortOrder,
+			},
+		});
+
+  return res.status(200).json(loans);
+}
+}
+
+
+	
 	catch(error) {
 		console.log(error);
 		return res.status(500).json({error : 'Internal Server Error'})
@@ -58,7 +227,6 @@ loansRouter.get('/', async (req, res) => {
 
 });
 
-// updatestatus check
 loansRouter.get('/agreement-template', async(req, res) => {
 	
 	const session = await getSession(req);
