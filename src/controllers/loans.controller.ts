@@ -62,173 +62,217 @@ const upload = multer();
 
 // updatestatus check
 
+// loansRouter.get('/', async (req, res) => {
+// 	const session = await getSession(req);
+// 	if (!session || session.role === "MEMBER") {
+// 		return res.status(401).json({error : "Unauthorized"})
+// 	}
+// 	const userRole = session.role;
+// 	const searchTerm = (req.query.search || "").toString();
+// 	const status = req.query.status?.toString();
+// 	const sortBy = req.query.sortBy?.toString() || "createdAt";
+// 	const sortOrder = req.query.sortOrder?.toString() || "desc";
+// 	const loanId = Number(searchTerm);
+// 	const idFilter = !isNaN(loanId) ? { id: { equals: loanId } } : undefined;
+// 	try {
+// 		if (userRole === 'ACCOUNTANT') {
+// 		const loans = await prisma.loan.findMany({
+// 			where: {
+// 			AND: [
+// 				{
+// 				OR: [
+// 					{ member: { name: { contains: searchTerm, mode: "insensitive" } } },
+// 					idFilter,
+// 				].filter(Boolean) as any[],
+// 				},
+// 				{ status: 'PENDING' }, // optional: filter only approved loans if needed
+// 				{
+// 				approvalLogs: {
+// 					some: {
+// 					approvalOrder: 0, 
+// 					},
+// 				},
+// 				},
+// 			],
+// 			},
+// 			include: {
+// 			member: {
+// 				select: {
+// 				name: true,
+// 				},
+// 			},
+// 			approvalLogs: true, // include logs if needed
+// 			},
+// 			orderBy: {
+// 			[sortBy]: sortOrder,
+// 			},
+// 		});
+
+// 	return res.status(200).json(loans);
+// 	}
+// 	else if (userRole == 'SUPERVISOR') {
+// 		console.log('A supervisor is hitting my endpoint')
+// 		const loans = await prisma.loan.findMany({
+// 			where: {
+// 			AND: [
+// 				{
+// 				OR: [
+// 					{ member: { name: { contains: searchTerm, mode: "insensitive" } } },
+// 					idFilter,
+// 				].filter(Boolean) as any[],
+// 				},
+// 				{ status: 'APPROVED' }, // optional: filter only approved loans if needed
+// 				{
+// 				approvalLogs: {
+// 					some: {
+// 					approvalOrder: 1, // only loans with an approval log at order 0
+// 					},
+// 				},
+// 				},
+// 			],
+// 			},
+// 			include: {
+// 			member: {
+// 				select: {
+// 				name: true,
+// 				},
+// 			},
+// 			approvalLogs: true, // include logs if needed
+// 			},
+// 			orderBy: {
+// 			[sortBy]: sortOrder,
+// 			},
+// 		});
+
+//   return res.status(200).json(loans);
+// }
+
+// 	else if (userRole == 'MANAGER') {
+		
+// 		const loans = await prisma.loan.findMany({
+// 			where: {
+// 			AND: [
+// 				{
+// 				OR: [
+// 					{ member: { name: { contains: searchTerm, mode: "insensitive" } } },
+// 					idFilter,
+// 				].filter(Boolean) as any[],
+// 				},
+// 				{ status: 'APPROVED' }, // optional: filter only approved loans if needed
+// 				{
+// 				approvalLogs: {
+// 					some: {
+// 					approvalOrder: 2, // only loans with an approval log at order 0
+// 					},
+// 				},
+// 				},
+// 			],
+// 			},
+// 			include: {
+// 			member: {
+// 				select: {
+// 				name: true,
+// 				},
+// 			},
+// 			approvalLogs: true, // include logs if needed
+// 			},
+// 			orderBy: {
+// 			[sortBy]: sortOrder,
+// 			},
+// 		});
+
+// 	return res.status(200).json(loans);
+// 	}
+// 	else if (userRole == 'COMMITTEE') {
+// 		const loans = await prisma.loan.findMany({
+// 			where: {
+// 			AND: [
+// 				{
+// 				OR: [
+// 					{ member: { name: { contains: searchTerm, mode: "insensitive" } } },
+// 					idFilter,
+// 				].filter(Boolean) as any[],
+// 				},
+// 				{ status: 'APPROVED' }, // optional: filter only approved loans if needed
+// 				{
+// 				approvalLogs: {
+// 					some: {
+// 					approvalOrder: 3, // only loans with an approval log at order 0
+// 					},
+// 				},
+// 				},
+// 			],
+// 			},
+// 			include: {
+// 			member: {
+// 				select: {
+// 				name: true,
+// 				},
+// 			},
+// 			approvalLogs: true, // include logs if needed
+// 			},
+// 			orderBy: {
+// 			[sortBy]: sortOrder,
+// 			},
+// 		});
+
+//   return res.status(200).json(loans);
+// }
+// }
+
+
+	
+// 	catch(error) {
+// 		console.log(error);
+// 		return res.status(500).json({error : 'Internal Server Error'})
+// 	}
+
+// });
+
 loansRouter.get('/', async (req, res) => {
+	const roleApprovalOrderMap: Record<string, number> = {
+		ACCOUNTANT: 0,
+		SUPERVISOR: 1,
+		MANAGER: 2,
+		COMMITTEE: 3,
+		};
 	const session = await getSession(req);
 	if (!session || session.role === "MEMBER") {
-		return res.status(401).json({error : "Unauthorized"})
+	return res.status(401).json({ error: "Unauthorized" });
 	}
+
 	const userRole = session.role;
+	const targetApprovalOrder = roleApprovalOrderMap[userRole] ?? 0;
 	const searchTerm = (req.query.search || "").toString();
-	const status = req.query.status?.toString();
 	const sortBy = req.query.sortBy?.toString() || "createdAt";
 	const sortOrder = req.query.sortOrder?.toString() || "desc";
 	const loanId = Number(searchTerm);
 	const idFilter = !isNaN(loanId) ? { id: { equals: loanId } } : undefined;
-	try {
-		if (userRole === 'ACCOUNTANT') {
-		const loans = await prisma.loan.findMany({
-			where: {
-			AND: [
-				{
-				OR: [
-					{ member: { name: { contains: searchTerm, mode: "insensitive" } } },
-					idFilter,
-				].filter(Boolean) as any[],
-				},
-				{ status: 'PENDING' }, // optional: filter only approved loans if needed
-				{
-				approvalLogs: {
-					some: {
-					approvalOrder: 0, 
-					},
-				},
-				},
-			],
-			},
-			include: {
-			member: {
-				select: {
-				name: true,
-				},
-			},
-			approvalLogs: true, // include logs if needed
-			},
-			orderBy: {
-			[sortBy]: sortOrder,
-			},
-		});
 
-	return res.status(200).json(loans);
-	}
-	else if (userRole == 'SUPERVISOR') {
-		console.log('A supervisor is hitting my endpoint')
-		const loans = await prisma.loan.findMany({
-			where: {
-			AND: [
-				{
-				OR: [
-					{ member: { name: { contains: searchTerm, mode: "insensitive" } } },
-					idFilter,
-				].filter(Boolean) as any[],
-				},
-				{ status: 'APPROVED' }, // optional: filter only approved loans if needed
-				{
-				approvalLogs: {
-					some: {
-					approvalOrder: 1, // only loans with an approval log at order 0
-					},
-				},
-				},
-			],
-			},
-			include: {
-			member: {
-				select: {
-				name: true,
-				},
-			},
-			approvalLogs: true, // include logs if needed
-			},
-			orderBy: {
-			[sortBy]: sortOrder,
-			},
-		});
-
-  return res.status(200).json(loans);
-}
-
-	else if (userRole == 'MANAGER') {
-		
-		const loans = await prisma.loan.findMany({
-			where: {
-			AND: [
-				{
-				OR: [
-					{ member: { name: { contains: searchTerm, mode: "insensitive" } } },
-					idFilter,
-				].filter(Boolean) as any[],
-				},
-				{ status: 'APPROVED' }, // optional: filter only approved loans if needed
-				{
-				approvalLogs: {
-					some: {
-					approvalOrder: 2, // only loans with an approval log at order 0
-					},
-				},
-				},
-			],
-			},
-			include: {
-			member: {
-				select: {
-				name: true,
-				},
-			},
-			approvalLogs: true, // include logs if needed
-			},
-			orderBy: {
-			[sortBy]: sortOrder,
-			},
-		});
-
-	return res.status(200).json(loans);
-	}
-	else if (userRole == 'COMMITTEE') {
-		const loans = await prisma.loan.findMany({
-			where: {
-			AND: [
-				{
-				OR: [
-					{ member: { name: { contains: searchTerm, mode: "insensitive" } } },
-					idFilter,
-				].filter(Boolean) as any[],
-				},
-				{ status: 'APPROVED' }, // optional: filter only approved loans if needed
-				{
-				approvalLogs: {
-					some: {
-					approvalOrder: 3, // only loans with an approval log at order 0
-					},
-				},
-				},
-			],
-			},
-			include: {
-			member: {
-				select: {
-				name: true,
-				},
-			},
-			approvalLogs: true, // include logs if needed
-			},
-			orderBy: {
-			[sortBy]: sortOrder,
-			},
-		});
-
-  return res.status(200).json(loans);
-}
-}
+	const loans = await prisma.loan.findMany({
+	where: {
+		OR: [
+		{ member: { name: { contains: searchTerm, mode: "insensitive" } } },
+		idFilter,
+		].filter(Boolean) as any[],
+	},
+	include: {
+		member: { select: { name: true } },
+		approvalLogs: { orderBy: { createdAt: "desc" } }, // latest first
+	},
+	orderBy: { [sortBy]: sortOrder },
+	});
+	const filteredLoans = loans.filter(loan => {
+	const latestLog = loan.approvalLogs[0]; // latest log
+	if (!latestLog) return targetApprovalOrder === 0; // no approvals yet → ACCOUNTANT
+	return latestLog.approvalOrder === targetApprovalOrder - 1; // next in line
+	});
 
 
-	
-	catch(error) {
-		console.log(error);
-		return res.status(500).json({error : 'Internal Server Error'})
-	}
+
+
 
 });
-
 loansRouter.get('/agreement-template', async(req, res) => {
 	
 	const session = await getSession(req);
