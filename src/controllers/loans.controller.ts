@@ -111,6 +111,7 @@ loansRouter.get('/', async (req, res) => {
 	return res.status(200).json(loans);
 	}
 	else if (userRole == 'SUPERVISOR') {
+		console.log('A supervisor is hitting my endpoint')
 		const loans = await prisma.loan.findMany({
 			where: {
 			AND: [
@@ -147,6 +148,7 @@ loansRouter.get('/', async (req, res) => {
 }
 
 	else if (userRole == 'MANAGER') {
+		
 		const loans = await prisma.loan.findMany({
 			where: {
 			AND: [
