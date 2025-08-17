@@ -263,10 +263,18 @@ loansRouter.get('/', async (req, res) => {
 	orderBy: { [sortBy]: sortOrder },
 	});
 	const filteredLoans = loans.filter(loan => {
-	const latestLog = loan.approvalLogs[0]; // latest log
-	if (!latestLog) return targetApprovalOrder === 0; // no approvals yet → ACCOUNTANT
-	return latestLog.approvalOrder === targetApprovalOrder - 1; // next in line
+	const latestLog = loan.approvalLogs[0];
+
+	
+	if (!latestLog) return targetApprovalOrder === 0;
+
+	
+	if (latestLog.approvalOrder === targetApprovalOrder) return true;
+
+	
+	return latestLog.approvalOrder === targetApprovalOrder - 1;
 	});
+	return res.json(filteredLoans)
 
 
 
