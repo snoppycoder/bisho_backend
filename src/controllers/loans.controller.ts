@@ -695,6 +695,7 @@ loansRouter.get('/documents/view', async(req, res) => {
 
 });
 
+
 loansRouter.post('/approve/:id', async (req, res) => {
 
   const id = req.params.id;
@@ -771,23 +772,39 @@ loansRouter.post('/approve/:id', async (req, res) => {
       return res.status(400).json({ error: "Invalid approval status." });
     }
 
-    const updatedLoan = await prisma.loan.update({
-      where: { id: Number.parseInt(id) },
-      data: {
-        status: logStatus,
-        approvalLogs: {
-          create: {
-            approvedByUserId: session.id,
-            role: session.role as LoanApprovalLog["role"],
-            newStatus,
-            approvalOrder: currentRoleIndex + 1,
-            comments,
-          } as any,
-        },
-      },
-    });
+    // const updatedLoan = await prisma.loan.update({
+    //   where: { id: Number.parseInt(id) },
+    //   data: {
+    //     status: logStatus,
+    //     approvalLogs: {
+    //       create: {
+    //         approvedByUserId: session.id,
+    //         role: session.role as LoanApprovalLog["role"],
+    //         newStatus,
+    //         approvalOrder: currentRoleIndex + 1,
+    //         comments,
+    //       } as any,
+    //     },
+    //   },
+    // });
 
-    const isFinalApprover = currentRoleIndex === APPROVAL_HIERARCHY.length - 1;
+    const updatedLoan = await prisma.loan.update({
+  where: { id: Number.parseInt(id) },
+  data: {
+    status: logStatus, // <- this must always be a valid LoanApprovalStatus value
+    approvalLogs: {
+      create: {
+        approvedByUserId: session.id,
+        role: session.role as LoanApprovalLog["role"],
+        newStatus, // <- in your schema, is this an enum too or just a string?
+        approvalOrder: currentRoleIndex + 1,
+        comments,
+      } as any, // <- casting to any is hiding the real type error
+    },
+  },
+});
+
+	const isFinalApprover = currentRoleIndex === APPROVAL_HIERARCHY.length - 1;
     
     if (!isFinalApprover && newStatus !== LoanApprovalStatus.DISBURSED) {
       const nextRole = APPROVAL_HIERARCHY[currentRoleIndex + 1];
