@@ -258,7 +258,7 @@ loansRouter.get('/agreement-template', async(req, res) => {
 		);
 		}
 });
- loansRouter.get('/approval-history', async(req, res) => {
+loansRouter.get('/approval-history', async(req, res) => {
 	console.log(req)
 	const session = await getSession(req);
 	if (!session || session.role === "MEMBER") {
@@ -351,7 +351,7 @@ loansRouter.get('/agreement-template', async(req, res) => {
 
 
  });
-  loansRouter.get('/pending', async(req, res) => {
+loansRouter.get('/pending', async(req, res) => {
 	const session = await getSession(req);
 	if (!session || session.role === "MEMBER") {
 		return res.status(401).json({ error: "Unauthorized" });
@@ -450,7 +450,6 @@ loansRouter.get('/agreement-template', async(req, res) => {
 
 
 });
-
 loansRouter.post('/apply', upload.single('agreement'), async(req, res)=> {
 	const session = await getSession(req);
 	if (!session || session.role !== "MEMBER") {
