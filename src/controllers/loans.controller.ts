@@ -13,7 +13,7 @@ import { getContentType } from '../utils/getContentType.js';
 
 
 const loansRouter = express.Router();
-const APPROVAL_HIERARCHY: UserRole[] = [UserRole.ACCOUNTANT, UserRole.MANAGER, UserRole.SUPERVISOR, UserRole.COMMITTEE];
+const APPROVAL_HIERARCHY: UserRole[] = [UserRole.ACCOUNTANT,  UserRole.SUPERVISOR, UserRole.MANAGER, UserRole.COMMITTEE];
 const MIN_COMMITTEE_APPROVAL = 2;
 const upload = multer(); 
 
@@ -357,20 +357,15 @@ loansRouter.get('/agreement-template', async(req, res) => {
 		return res.status(401).json({ error: "Unauthorized" });
 	}
 	const userRole = session.role as UserRole;
-	let reqApprovalOrder : number = -1;
-	for (var i = 0; i < APPROVAL_HIERARCHY.length; i++) {
-		if (userRole === APPROVAL_HIERARCHY[i]) {
-			reqApprovalOrder = i;
-			break;
-		}
-	}
+
+	if (userRole === 'ACCOUNTANT'){
 	const pendingLoans = await prisma.loan.findMany({
 			where: {
 				status: "PENDING",
 				approvalLogs: {
 					some: {
-						approvalOrder: reqApprovalOrder,
-						status: "APPROVED",
+						approvalOrder: 0,
+						
 					},
 				},
 			},
@@ -384,6 +379,75 @@ loansRouter.get('/agreement-template', async(req, res) => {
 		});
 
 		return res.json(pendingLoans);
+	}
+	else if (userRole === 'SUPERVISOR'){
+	const pendingLoans = await prisma.loan.findMany({
+			where: {
+				status: "PENDING",
+				approvalLogs: {
+					some: {
+						approvalOrder: 1,
+						
+					},
+				},
+			},
+			include: {
+				member: true,
+				approvalLogs: {
+					orderBy: { approvalOrder: "desc" },
+					take: 1,
+				},
+			},
+		});
+
+		return res.json(pendingLoans);
+	}
+	else if (userRole === 'MANAGER'){
+	const pendingLoans = await prisma.loan.findMany({
+			where: {
+				status: "PENDING",
+				approvalLogs: {
+					some: {
+						approvalOrder: 2,
+						
+					},
+				},
+			},
+			include: {
+				member: true,
+				approvalLogs: {
+					orderBy: { approvalOrder: "desc" },
+					take: 1,
+				},
+			},
+		});
+
+		return res.json(pendingLoans);
+	}
+	else if (userRole === 'COMMITTEE'){
+	const pendingLoans = await prisma.loan.findMany({
+			where: {
+				status: "PENDING",
+				approvalLogs: {
+					some: {
+						approvalOrder: 3,
+						
+					},
+				},
+			},
+			include: {
+				member: true,
+				approvalLogs: {
+					orderBy: { approvalOrder: "desc" },
+					take: 1,
+				},
+			},
+		});
+
+		return res.json(pendingLoans);
+	}
+
+
 
 });
 
