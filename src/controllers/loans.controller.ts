@@ -85,7 +85,7 @@ loansRouter.get('/', async (req, res) => {
 					idFilter,
 				].filter(Boolean) as any[],
 				},
-				{ status: 'APPROVED' }, // optional: filter only approved loans if needed
+				{ status: 'PENDING' }, // optional: filter only approved loans if needed
 				{
 				approvalLogs: {
 					some: {
@@ -488,7 +488,6 @@ loansRouter.post('/apply', upload.single('agreement'), async(req, res)=> {
 				},
 				approvalLogs: {
 					create: {
-						approvedByUserId: Number(process.env.ADMIN_ID || 1),
 						role: "MEMBER" as UserRole,
 						status: "PENDING" ,
 						approvalOrder: 0,
