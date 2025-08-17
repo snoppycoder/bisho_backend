@@ -13,10 +13,11 @@ import { getSession, getUserFromRequest } from './auth/auth.js';
 import { Account, MemberData } from '../model/model.js';
 import { createJournalEntry, mapToAccountingType } from '../utils/createJournal.js';
 import { handleLoanRepayment } from '../utils/handleloanRepayment.js';
-
+import multer from 'multer';
 
 
 const membersRouter = express.Router();
+const upload = multer({dest: "loanDocAdmin/"})
 
 membersRouter.get("/", async(req, res) => {
 	const session = await getSession(req);
@@ -655,6 +656,70 @@ membersRouter.get("/loan-eligibility", async(req, res) => {
 	}
 
 });
+
+membersRouter.get('/loans/documents', async (req, res) => {
+	const session = await getSession(req);
+	if (!session || session.role == 'MEMBER'){
+		return res.status(401).json("Unauthorized")
+	}
+	try {
+		const documents = await prisma.loanDocument.findMany({
+			select: {
+				id: true,
+				loanId: true,
+				documentType: true,
+				fileName: true,
+				uploadDate: true,
+				documentUrl: true,
+			},
+			orderBy: { uploadDate: "desc" },
+		});
+		return res.json(documents);
+	} catch (error) {
+		console.error("Error fetching loan documents:", error);
+		return res.status(500).json(
+			{ error: "Internal server error" },
+			
+		);
+	}
+
+});
+membersRouter.post('/loans/documents', upload.single("file") ,async (req, res) => {
+	const session = await getSession(req);
+	try{
+	if (!session || session.role == 'MEMBER'){
+		return res.status(401).json("Unauthorized")
+	} 
+	const { documentType, loanId } = req.body;
+	const file = req.file;
+	if (!file || !documentType || !loanId) {
+			return res.status(400).json({ error: "Missing required fields" });
+	}
+	const fileContent = file.buffer;
+	const documentUrl = `/api/loans/documents/${Date.now()}-${file.originalname}`;
+
+		const document = await prisma.loanDocument.create({
+			data: {
+				loanId: Number(loanId),
+				documentType,
+				fileName: file.originalname,
+				mimeType: file.mimetype,
+				documentContent: fileContent,
+				uploadedByUserId: session.id!,
+				documentUrl,
+			},
+		});
+		return res.json({
+			success: true,
+			documentId: document.id,
+			documentUrl: document.documentUrl,
+		});
+	} catch (error) {
+		console.error("Error uploading loan document:", error);
+		return res.status(500).json({ error: "Internal server error" });
+	}
+});
+
 membersRouter.get("/:etNumber/savings-and-transactions", async (req, res) => {
 	const session = await getSession(req);
 	if (!session) {
@@ -828,6 +893,7 @@ membersRouter.get("/:etNumber/savings-and-transactions", async (req, res) => {
 
 
 });
+
 
 membersRouter.get('/loans/:id', async (req, res) => {
 	const loanId = Number(req.params.id);
