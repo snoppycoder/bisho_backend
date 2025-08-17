@@ -259,7 +259,7 @@ loansRouter.get('/agreement-template', async(req, res) => {
 		}
 });
 loansRouter.get('/approval-history', async(req, res) => {
-	console.log(req)
+
 	const session = await getSession(req);
 	if (!session || session.role === "MEMBER") {
 		
@@ -747,7 +747,7 @@ loansRouter.post('/documents', upload.single("file"), async (req, res) => {
 loansRouter.get('/:id', async (req, res) => {
 	
 	const session = await getSession(req);
-	console.log(req)
+	
 	if (
 		!session || !session.id
 	)
@@ -755,6 +755,7 @@ loansRouter.get('/:id', async (req, res) => {
 		return res.status(401).json({ error: "Unauthorized" });
 	}
 	const loanId = Number.parseInt( req.params.id);
+	console.log('loanId ', loanId)
 	if (!loanId) return res.status(401).json({ error: "Unauthorized" });
 
 	
