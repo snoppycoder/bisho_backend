@@ -108,6 +108,7 @@ model Loan {
   memberId       Int
   amount         Decimal
   remainingAmount Decimal?
+  order           Int              @default(0)
   interestRate   Decimal
   tenureMonths   Int
   status         LoanApprovalStatus
@@ -140,9 +141,9 @@ model LoanApprovalLog {
   approvedByUserId Int
   role             UserRole
   status           LoanApprovalStatus
-  approvalOrder    Int
   comments         String?
   approvalDate     DateTime           @default(now())
+  approvalOrder    Int                @default(0)
   loan             Loan               @relation(fields: [loanId], references: [id])
   user             User               @relation(fields: [approvedByUserId], references: [id])
   createdAt        DateTime           @default(now())
