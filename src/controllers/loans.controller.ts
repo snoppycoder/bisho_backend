@@ -554,6 +554,7 @@ loansRouter.post('/apply', upload.single('agreement'), async(req, res)=> {
 					create: {
 						role: "MEMBER" as UserRole,
 						status: "PENDING" ,
+						approvedByUserId: session.id,
 						approvalOrder: 0,
 						comments: `Loan application submitted. Purpose: ${purpose}. Co-signers: ${
 							coSigner1 ? `ID:${coSigner1}` : "None"
