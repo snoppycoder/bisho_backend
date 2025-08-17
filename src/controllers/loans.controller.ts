@@ -14,7 +14,6 @@ import { getContentType } from '../utils/getContentType.js';
 
 const loansRouter = express.Router();
 const APPROVAL_HIERARCHY: UserRole[] = [UserRole.ACCOUNTANT, UserRole.MANAGER, UserRole.SUPERVISOR, UserRole.COMMITTEE];
-const APPROVAL_STATUS : LoanApprovalStatus[] = [LoanApprovalStatus.APPROVED_BY_ACCOUNTANT, LoanApprovalStatus.APPROVED_BY_MANAGER, LoanApprovalStatus.APPROVED_BY_SUPERVISOR, LoanApprovalStatus.APPROVED_BY_COMMITTEE, LoanApprovalStatus.DISBURSED];
 const MIN_COMMITTEE_APPROVAL = 2;
 const upload = multer(); 
 
@@ -247,7 +246,7 @@ loansRouter.post('/apply', upload.single('agreement'), async(req, res)=> {
 				loans: {
 					where: {
 						status: {
-							in: ['PENDING', 'APPROVED_BY_COMMITTEE', 'APPROVED_BY_MANAGER', 'APPROVED_BY_SUPERVISOR', 'APPROVED_BY_ACCOUNTANT', 'DISBURSED'],
+							in: ['PENDING', 'APPROVED', 'DISBURSED'],
 						},
 					},
 				},
@@ -696,141 +695,292 @@ loansRouter.get('/documents/view', async(req, res) => {
 });
 
 
+// loansRouter.post('/approve/:id', async (req, res) => {
+
+//   const id = req.params.id;
+//   const session = await getSession(req);
+//   if (!session || session.role === "MEMBER") return res.status(401).json({ error: "Unauthorized" });
+
+//   const { status, comments } = req.body;
+//   try {
+//     const loan = await prisma.loan.findUnique({
+//       where: { id: Number.parseInt(id) },
+//       include: { member: true },
+//     });
+//     if (!loan) return res.status(404).json({ error: "Loan not found" });
+
+//     if (status === "REJECTED") {
+//       await sendNotification({
+//         userId: loan.memberId,
+//         title: 'Loan Rejected',
+//         message: `Loan (ID: ${loan.id}) was rejected`,
+//         type: 'LOAN_APPROVAL_UPDATE',
+//       });
+// 	  }
+
+//     const loanApprovals = await prisma.loanApprovalLog.findMany({
+//       where: { loanId: loan.id },
+//       orderBy: { approvalOrder: 'asc' },
+//     });
+
+//     const currentRoleIndex = APPROVAL_HIERARCHY.indexOf(session.role as UserRole);
+//     for (let i = 0; i < currentRoleIndex; i++) {
+//       const role = APPROVAL_HIERARCHY[i];
+//       if (!loanApprovals.find(log => log.role === role)) {
+//         return res.status(400).json({ error: `${role} must approve the loan before ${session.role}` });
+//       }
+//     }
+
+//     if (session.role !== UserRole.COMMITTEE) {
+//       if (loanApprovals.some(log => log.role === session.role)) {
+//         return res.status(400).json({ error: `${session.role} has already approved this loan.` });
+//       }
+//     }
+
+//     let committeeApprovedCount = 0;
+//     let committeeRejectedCount = 0;
+
+//     if (session.role === UserRole.COMMITTEE) {
+//       committeeApprovedCount = loanApprovals.filter(
+//         log => log.role === UserRole.COMMITTEE && log.status === LoanApprovalStatus.APPROVED_BY_COMMITTEE
+//       ).length;
+
+//       committeeRejectedCount = loanApprovals.filter(
+//         log => log.role === UserRole.COMMITTEE && log.status === LoanApprovalStatus.REJECTED_BY_COMMITTEE
+//       ).length;
+//     }
+
+//     let newStatus = APPROVAL_STATUS[currentRoleIndex];
+//     let logStatus = newStatus;
+
+//     if (session.role === UserRole.COMMITTEE) {
+//       if (status === "REJECTED") {
+//         logStatus = LoanApprovalStatus.REJECTED_BY_COMMITTEE;
+//         newStatus = LoanApprovalStatus.REJECTED;
+//       } else {
+//         logStatus = LoanApprovalStatus.APPROVED_BY_COMMITTEE;
+//         committeeApprovedCount += 1;
+
+//         if (committeeApprovedCount >= MIN_COMMITTEE_APPROVAL) {
+//           newStatus = LoanApprovalStatus.DISBURSED;
+//         }
+//       }
+//     }
+
+//     if (logStatus === undefined) {
+//       return res.status(400).json({ error: "Invalid approval status." });
+//     }
+
+//     // const updatedLoan = await prisma.loan.update({
+//     //   where: { id: Number.parseInt(id) },
+//     //   data: {
+//     //     status: logStatus,
+//     //     approvalLogs: {
+//     //       create: {
+//     //         approvedByUserId: session.id,
+//     //         role: session.role as LoanApprovalLog["role"],
+//     //         newStatus,
+//     //         approvalOrder: currentRoleIndex + 1,
+//     //         comments,
+//     //       } as any,
+//     //     },
+//     //   },
+//     // });
+
+//     const updatedLoan = await prisma.loan.update({
+//   where: { id: Number.parseInt(id) },
+//   data: {
+//     status: logStatus, // <- this must always be a valid LoanApprovalStatus value
+//     approvalLogs: {
+//       create: {
+//         approvedByUserId: session.id,
+//         role: session.role as LoanApprovalLog["role"],
+//         newStatus, // <- in your schema, is this an enum too or just a string?
+//         approvalOrder: currentRoleIndex + 1,
+//         comments,
+//       } as any, // <- casting to any is hiding the real type error
+//     },
+//   },
+// });
+
+// 	const isFinalApprover = currentRoleIndex === APPROVAL_HIERARCHY.length - 1;
+    
+//     if (!isFinalApprover && newStatus !== LoanApprovalStatus.DISBURSED) {
+//       const nextRole = APPROVAL_HIERARCHY[currentRoleIndex + 1];
+//       if (!nextRole) {
+//         return res.status(400).json({ error: "Next approval role is undefined." });
+//       }
+      
+//       const nextUsers = await prisma.user.findMany({
+//         where: { role: nextRole },
+//       });
+
+//       for (const user of nextUsers) {
+//         await sendNotification({
+//           userId: user.id,
+//           title: "Loan Approval Required",
+//           message: `Loan ID ${loan.id} requires your approval.`,
+//           type: "LOAN_APPROVAL_PENDING",
+//         });
+//       }
+//     }
+
+//     return res.json({
+//       success: true,
+//       message: `Loan ${status === "REJECTED" ? "rejected" : "approved"} successfully.`,
+//       loan: updatedLoan,
+//     });
+
+//   } catch (error) {
+//     console.error("Error approving loan:", error);
+//     return res.status(500).json({ error: "Failed to process loan approval." });
+//   }
+// });
 loansRouter.post('/approve/:id', async (req, res) => {
 
   const id = req.params.id;
   const session = await getSession(req);
   if (!session || session.role === "MEMBER") return res.status(401).json({ error: "Unauthorized" });
-
-  const { status, comments } = req.body;
+  const userRole = session.role!;
+  const {status, comment} = req.body;
   try {
-    const loan = await prisma.loan.findUnique({
+	 const loan = await prisma.loan.findUnique({
       where: { id: Number.parseInt(id) },
       include: { member: true },
     });
-    if (!loan) return res.status(404).json({ error: "Loan not found" });
 
-    if (status === "REJECTED") {
-      await sendNotification({
+	if (!loan) return res.status(404).json({ error: "Loan not found" });
+	if (status == 'REJECTED') {
+		await prisma.loan.update({
+		where: { id: loan.id },
+		data: {
+			status: 'REJECTED',
+			approvalLogs: {
+			create: {
+				approvedByUserId: session.id!, 
+				role: userRole as UserRole,   
+				status: 'REJECTED',           
+				approvalOrder: -1,
+				comments: 'Loan rejected by admin',
+				
+			}
+			}
+		}
+	});
+	await sendNotification({
         userId: loan.memberId,
         title: 'Loan Rejected',
-        message: `Loan (ID: ${loan.id}) was rejected`,
+        message: `Loan (ID: ${loan.id}) was rejected because of the following reason \n ${comment}`,
         type: 'LOAN_APPROVAL_UPDATE',
       });
-	  }
+	return;
 
-    const loanApprovals = await prisma.loanApprovalLog.findMany({
-      where: { loanId: loan.id },
-      orderBy: { approvalOrder: 'asc' },
-    });
+	} 
+	if (status === 'APPROVED') {
+		 const currentRoleIndex = APPROVAL_HIERARCHY.indexOf(session.role as UserRole);
+		 const loanApprovals = await prisma.loanApprovalLog.findMany({
+		where: { loanId: loan.id },
+		orderBy: { approvalOrder: 'asc' },
+		});
+		for (let i = 0; i < currentRoleIndex; i++) {
+		const role = APPROVAL_HIERARCHY[i];
+		if (!loanApprovals.find(log => log.role === role)) {
+			return res.status(400).json({ error: `${role} must approve the loan before ${session.role}` });
+		}
+		}
 
-    const currentRoleIndex = APPROVAL_HIERARCHY.indexOf(session.role as UserRole);
-    for (let i = 0; i < currentRoleIndex; i++) {
-      const role = APPROVAL_HIERARCHY[i];
-      if (!loanApprovals.find(log => log.role === role)) {
-        return res.status(400).json({ error: `${role} must approve the loan before ${session.role}` });
-      }
-    }
+		if (session.role !== UserRole.COMMITTEE) {
+			if (loanApprovals.some(log => log.role === session.role)) {
+				return res.status(400).json({ error: `${session.role} has already approved this loan.` });
+			}
+			const updatedLoan = await prisma.loan.update({
+				where: { id: loan.id },
+				data: {
+					status: 'APPROVED',
+					approvalLogs: {
+					create: {
+						approvedByUserId: session.id!, 
+						role: userRole as UserRole,   
+						status: 'APPROVED',           
+						approvalOrder: currentRoleIndex+1,
+						comments: 'Loan was approved by admin',
+								
+						}
+					}
+				}
+			});	
 
-    if (session.role !== UserRole.COMMITTEE) {
-      if (loanApprovals.some(log => log.role === session.role)) {
-        return res.status(400).json({ error: `${session.role} has already approved this loan.` });
-      }
-    }
 
-    let committeeApprovedCount = 0;
-    let committeeRejectedCount = 0;
+			 return res.json({
+			success: true,
+			message: `Loan ${status === "REJECTED" ? "rejected" : "approved"} successfully.`,
+			loan: updatedLoan,
+			});
+	}
 
-    if (session.role === UserRole.COMMITTEE) {
-      committeeApprovedCount = loanApprovals.filter(
-        log => log.role === UserRole.COMMITTEE && log.status === LoanApprovalStatus.APPROVED_BY_COMMITTEE
-      ).length;
-
-      committeeRejectedCount = loanApprovals.filter(
-        log => log.role === UserRole.COMMITTEE && log.status === LoanApprovalStatus.REJECTED_BY_COMMITTEE
-      ).length;
-    }
-
-    let newStatus = APPROVAL_STATUS[currentRoleIndex];
-    let logStatus = newStatus;
-
-    if (session.role === UserRole.COMMITTEE) {
-      if (status === "REJECTED") {
-        logStatus = LoanApprovalStatus.REJECTED_BY_COMMITTEE;
-        newStatus = LoanApprovalStatus.REJECTED;
-      } else {
-        logStatus = LoanApprovalStatus.APPROVED_BY_COMMITTEE;
-        committeeApprovedCount += 1;
-
-        if (committeeApprovedCount >= MIN_COMMITTEE_APPROVAL) {
-          newStatus = LoanApprovalStatus.DISBURSED;
-        }
-      }
-    }
-
-    if (logStatus === undefined) {
-      return res.status(400).json({ error: "Invalid approval status." });
-    }
-
-    // const updatedLoan = await prisma.loan.update({
-    //   where: { id: Number.parseInt(id) },
-    //   data: {
-    //     status: logStatus,
-    //     approvalLogs: {
-    //       create: {
-    //         approvedByUserId: session.id,
-    //         role: session.role as LoanApprovalLog["role"],
-    //         newStatus,
-    //         approvalOrder: currentRoleIndex + 1,
-    //         comments,
-    //       } as any,
-    //     },
-    //   },
-    // });
-
-    const updatedLoan = await prisma.loan.update({
-  where: { id: Number.parseInt(id) },
-  data: {
-    status: logStatus, // <- this must always be a valid LoanApprovalStatus value
-    approvalLogs: {
-      create: {
-        approvedByUserId: session.id,
-        role: session.role as LoanApprovalLog["role"],
-        newStatus, // <- in your schema, is this an enum too or just a string?
-        approvalOrder: currentRoleIndex + 1,
-        comments,
-      } as any, // <- casting to any is hiding the real type error
-    },
-  },
-});
-
-	const isFinalApprover = currentRoleIndex === APPROVAL_HIERARCHY.length - 1;
-    
-    if (!isFinalApprover && newStatus !== LoanApprovalStatus.DISBURSED) {
-      const nextRole = APPROVAL_HIERARCHY[currentRoleIndex + 1];
-      if (!nextRole) {
-        return res.status(400).json({ error: "Next approval role is undefined." });
-      }
-      
-      const nextUsers = await prisma.user.findMany({
-        where: { role: nextRole },
-      });
-
-      for (const user of nextUsers) {
-        await sendNotification({
-          userId: user.id,
-          title: "Loan Approval Required",
-          message: `Loan ID ${loan.id} requires your approval.`,
-          type: "LOAN_APPROVAL_PENDING",
+	const lastApproved = loanApprovals[loanApprovals.length-1]!;
+	// this can't be undefined or null
+	//we should take the committe approval
+	if (lastApproved?.committeeApproval == MIN_COMMITTEE_APPROVAL) {
+		const updatedLoan = await prisma.loan.update({
+				where: { id: loan.id },
+				data: {
+					status: 'DISBURSED',
+					approvalLogs: {
+					create: {
+						approvedByUserId: session.id!, 
+						role: userRole as UserRole,   
+						status: 'DISBURSED',   
+						approvalOrder: currentRoleIndex,        
+						comments: 'Loan disbursed by committee',
+								
+						}
+					}
+				}
+			});	
+		await sendNotification({
+          userId: session.id!,
+          title: "Loan has been successfully disbursed",
+          message: `Loan ID ${loan.id} has been disbursed`,
+          type: "LOAN_STATUS_UPDATE",
         });
-      }
-    }
+		 return res.json({
+      success: true,
+      message: `Loan DISBURSED successfully.`,
+      loan: updatedLoan,
+    }); 
+
+		
+	}
+	const updatedLoan = await prisma.loan.update({
+				where: { id: loan.id },
+				data: {
+					status: 'APPROVED',
+					approvalLogs: {
+					create: {
+						approvedByUserId: session.id!, 
+						role: userRole as UserRole,   
+						status: 'APPROVED',   
+						approvalOrder: currentRoleIndex,        
+						comments: 'Loan approved by committee',
+						committeeApproval: lastApproved.committeeApproval + 1
+								
+						}
+					}
+				}
+			});	
+	
+	
+	
+
+	
 
     return res.json({
       success: true,
       message: `Loan ${status === "REJECTED" ? "rejected" : "approved"} successfully.`,
       loan: updatedLoan,
     });
+}
 
   } catch (error) {
     console.error("Error approving loan:", error);
