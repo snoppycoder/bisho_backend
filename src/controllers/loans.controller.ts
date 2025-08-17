@@ -748,14 +748,11 @@ loansRouter.get('/:id', async (req, res) => {
 	
 	const session = await getSession(req);
 	
-	if (
-		!session || !session.id
-	)
+	if (!session || !session.id)
 	{
 		return res.status(401).json({ error: "Unauthorized" });
 	}
 	const loanId = Number.parseInt( req.params.id);
-	console.log('loanId ', loanId)
 	if (!loanId) return res.status(401).json({ error: "Unauthorized" });
 
 	
@@ -977,6 +974,7 @@ loansRouter.post('/approve/:id', async (req, res) => {
 		for (let i = 0; i < currentRoleIndex; i++) {
 		const role = APPROVAL_HIERARCHY[i];
 		if (!loanApprovals.find(log => log.role === role)) {
+			console.log('this here is the issue')
 			return res.status(400).json({ error: `${role} must approve the loan before ${session.role}` });
 		}
 		}
