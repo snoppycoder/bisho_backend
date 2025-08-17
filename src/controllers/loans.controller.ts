@@ -927,148 +927,6 @@ loansRouter.get('/documents/view', async(req, res) => {
 
 });
 
-
-// loansRouter.post('/approve/:id', async (req, res) => {
-
-//   const id = req.params.id;
-//   const session = await getSession(req);
-//   if (!session || session.role === "MEMBER") return res.status(401).json({ error: "Unauthorized" });
-
-//   const { status, comments } = req.body;
-//   try {
-//     const loan = await prisma.loan.findUnique({
-//       where: { id: Number.parseInt(id) },
-//       include: { member: true },
-//     });
-//     if (!loan) return res.status(404).json({ error: "Loan not found" });
-
-//     if (status === "REJECTED") {
-//       await sendNotification({
-//         userId: loan.memberId,
-//         title: 'Loan Rejected',
-//         message: `Loan (ID: ${loan.id}) was rejected`,
-//         type: 'LOAN_APPROVAL_UPDATE',
-//       });
-// 	  }
-
-//     const loanApprovals = await prisma.loanApprovalLog.findMany({
-//       where: { loanId: loan.id },
-//       orderBy: { approvalOrder: 'asc' },
-//     });
-
-//     const currentRoleIndex = APPROVAL_HIERARCHY.indexOf(session.role as UserRole);
-//     for (let i = 0; i < currentRoleIndex; i++) {
-//       const role = APPROVAL_HIERARCHY[i];
-//       if (!loanApprovals.find(log => log.role === role)) {
-//         return res.status(400).json({ error: `${role} must approve the loan before ${session.role}` });
-//       }
-//     }
-
-//     if (session.role !== UserRole.COMMITTEE) {
-//       if (loanApprovals.some(log => log.role === session.role)) {
-//         return res.status(400).json({ error: `${session.role} has already approved this loan.` });
-//       }
-//     }
-
-//     let committeeApprovedCount = 0;
-//     let committeeRejectedCount = 0;
-
-//     if (session.role === UserRole.COMMITTEE) {
-//       committeeApprovedCount = loanApprovals.filter(
-//         log => log.role === UserRole.COMMITTEE && log.status === LoanApprovalStatus.APPROVED_BY_COMMITTEE
-//       ).length;
-
-//       committeeRejectedCount = loanApprovals.filter(
-//         log => log.role === UserRole.COMMITTEE && log.status === LoanApprovalStatus.REJECTED_BY_COMMITTEE
-//       ).length;
-//     }
-
-//     let newStatus = APPROVAL_STATUS[currentRoleIndex];
-//     let logStatus = newStatus;
-
-//     if (session.role === UserRole.COMMITTEE) {
-//       if (status === "REJECTED") {
-//         logStatus = LoanApprovalStatus.REJECTED_BY_COMMITTEE;
-//         newStatus = LoanApprovalStatus.REJECTED;
-//       } else {
-//         logStatus = LoanApprovalStatus.APPROVED_BY_COMMITTEE;
-//         committeeApprovedCount += 1;
-
-//         if (committeeApprovedCount >= MIN_COMMITTEE_APPROVAL) {
-//           newStatus = LoanApprovalStatus.DISBURSED;
-//         }
-//       }
-//     }
-
-//     if (logStatus === undefined) {
-//       return res.status(400).json({ error: "Invalid approval status." });
-//     }
-
-//     // const updatedLoan = await prisma.loan.update({
-//     //   where: { id: Number.parseInt(id) },
-//     //   data: {
-//     //     status: logStatus,
-//     //     approvalLogs: {
-//     //       create: {
-//     //         approvedByUserId: session.id,
-//     //         role: session.role as LoanApprovalLog["role"],
-//     //         newStatus,
-//     //         approvalOrder: currentRoleIndex + 1,
-//     //         comments,
-//     //       } as any,
-//     //     },
-//     //   },
-//     // });
-
-//     const updatedLoan = await prisma.loan.update({
-//   where: { id: Number.parseInt(id) },
-//   data: {
-//     status: logStatus, // <- this must always be a valid LoanApprovalStatus value
-//     approvalLogs: {
-//       create: {
-//         approvedByUserId: session.id,
-//         role: session.role as LoanApprovalLog["role"],
-//         newStatus, // <- in your schema, is this an enum too or just a string?
-//         approvalOrder: currentRoleIndex + 1,
-//         comments,
-//       } as any, // <- casting to any is hiding the real type error
-//     },
-//   },
-// });
-
-// 	const isFinalApprover = currentRoleIndex === APPROVAL_HIERARCHY.length - 1;
-    
-//     if (!isFinalApprover && newStatus !== LoanApprovalStatus.DISBURSED) {
-//       const nextRole = APPROVAL_HIERARCHY[currentRoleIndex + 1];
-//       if (!nextRole) {
-//         return res.status(400).json({ error: "Next approval role is undefined." });
-//       }
-      
-//       const nextUsers = await prisma.user.findMany({
-//         where: { role: nextRole },
-//       });
-
-//       for (const user of nextUsers) {
-//         await sendNotification({
-//           userId: user.id,
-//           title: "Loan Approval Required",
-//           message: `Loan ID ${loan.id} requires your approval.`,
-//           type: "LOAN_APPROVAL_PENDING",
-//         });
-//       }
-//     }
-
-//     return res.json({
-//       success: true,
-//       message: `Loan ${status === "REJECTED" ? "rejected" : "approved"} successfully.`,
-//       loan: updatedLoan,
-//     });
-
-//   } catch (error) {
-//     console.error("Error approving loan:", error);
-//     return res.status(500).json({ error: "Failed to process loan approval." });
-//   }
-// });
 loansRouter.post('/approve/:id', async (req, res) => {
 
   const id = req.params.id;
@@ -1129,7 +987,7 @@ loansRouter.post('/approve/:id', async (req, res) => {
 			const updatedLoan = await prisma.loan.update({
 				where: { id: loan.id },
 				data: {
-					status: 'APPROVED',
+					status: 'PENDING',
 					approvalLogs: {
 					create: {
 						approvedByUserId: session.id!, 
@@ -1158,7 +1016,7 @@ loansRouter.post('/approve/:id', async (req, res) => {
 		const updatedLoan = await prisma.loan.update({
 				where: { id: loan.id },
 				data: {
-					status: 'DISBURSED',
+					status: 'APPROVED',
 					approvalLogs: {
 					create: {
 						approvedByUserId: session.id!, 
@@ -1188,7 +1046,7 @@ loansRouter.post('/approve/:id', async (req, res) => {
 	const updatedLoan = await prisma.loan.update({
 				where: { id: loan.id },
 				data: {
-					status: 'APPROVED',
+					status: 'PENDING',
 					approvalLogs: {
 					create: {
 						approvedByUserId: session.id!, 
