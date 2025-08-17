@@ -829,7 +829,7 @@ membersRouter.get("/:etNumber/savings-and-transactions", async (req, res) => {
 
 });
 
-membersRouter.get('/loan/:id', async (req, res) => {
+membersRouter.get('/loans/:id', async (req, res) => {
 	const loanId = Number(req.params.id);
 	if (isNaN(loanId)) {
 		return res.status(400).json({ error: "Invalid loan ID" });
