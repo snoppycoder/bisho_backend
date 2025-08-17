@@ -780,9 +780,11 @@ loansRouter.post('/approve/:id', async (req, res) => {
 	}
 
 	const lastApproved = loanApprovals[loanApprovals.length-1]!;
+	console.log(lastApproved)
+	
 	// this can't be undefined or null
 	//we should take the committe approval
-	if (lastApproved?.committeeApproval == MIN_COMMITTEE_APPROVAL) {
+	if (lastApproved?.committeeApproval >= MIN_COMMITTEE_APPROVAL) {
 		const updatedLoan = await prisma.loan.update({
 				where: { id: loan.id },
 				data: {
