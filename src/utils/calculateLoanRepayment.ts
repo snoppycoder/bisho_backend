@@ -1,5 +1,6 @@
 import { prisma } from "../config/prisma.js";
 export async function createLoanRepayments(loan: any) {
+    console.log("create")
 	const { id, amount, interestRate, tenureMonths } = loan;
 	const monthlyInterestRate = interestRate / 100 / 12;
 	const monthlyPayment =
