@@ -10,6 +10,7 @@ import multer from 'multer'
 import { calculateLoan } from '../utils/calculate.js';
 import mime from 'mime-types';
 import { getContentType } from '../utils/getContentType.js';
+import { createLoanRepayments } from '../utils/calculateLoanRepayment.js';
 
 
 const loansRouter = express.Router();
@@ -560,8 +561,7 @@ loansRouter.get('/:id', async (req, res) => {
 	
 	const session = await getSession(req);
 	
-	if (!session || !session.id)
-	{
+	if (!session || !session.id){
 		return res.status(401).json({ error: "Unauthorized" });
 	}
 	const loanId = Number.parseInt( req.params.id);
@@ -881,7 +881,7 @@ loansRouter.post('/approve/:id', async (req, res) => {
 					}
 				}
 			});	
-	
+	await createLoanRepayments(updatedLoan);
 	
 	
 
