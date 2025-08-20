@@ -5,12 +5,25 @@ import {
     LoanApprovalStatus,
 	RepaymentStatus,
 	TransactionType,
+	UserRole,
 } from "@prisma/client";
 import { startOfMonth, subMonths, format } from "date-fns";
+import { getSession } from './auth/auth.js';
+const order = new Map<UserRole, number>([
+  [UserRole.ACCOUNTANT, 0],
+  [UserRole.SUPERVISOR, 1],
+  [UserRole.MANAGER, 2],
+  [UserRole.COMMITTEE, 3],
+]);
 
 const dashboardRouter = express.Router();
 
 dashboardRouter.get('/', async (req: Request, res:Response) => {
+	const session = await getSession(req);
+		if (!session || session.role === "MEMBER") {
+			return res.status(401).json({ error: "Unauthorized" });
+		}
+	const userRole = session.role as UserRole;
     res.set({
          "Cache-Control": "no-cache, no-store, must-revalidate",
         "Pragma": "no-cache",
@@ -19,6 +32,7 @@ dashboardRouter.get('/', async (req: Request, res:Response) => {
    
    
     try {
+		
 
         // Basic matrics
         const totalMembers = await prisma.member.count();
@@ -29,7 +43,9 @@ dashboardRouter.get('/', async (req: Request, res:Response) => {
         });
 
         const pendingApprovals = await prisma.loan.count({
-			where: { status: LoanApprovalStatus.PENDING },
+			where: { status: LoanApprovalStatus.PENDING,
+				order: order.get(userRole)!,
+			 },
 		});
 
         const totalSavingsTransactions = await prisma.transaction.aggregate({

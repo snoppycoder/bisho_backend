@@ -196,7 +196,7 @@ loansRouter.get('/pending', async(req, res) => {
 
 	const pendingLoans = await prisma.loan.findMany({
 			where: {
-				 order: order.get(userRole)!,
+				order: order.get(userRole)!,
 				status: "PENDING",
 				approvalLogs: {
 					some: {
