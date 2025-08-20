@@ -13,7 +13,7 @@ authLoginRouter.post('/', async (req, res) => {
 
         if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier)) {
             const user = await prisma.user.findUnique({
-				where: { email: identifier },
+				where: { email: identifier.toLowerCase()},
 			});
             if (!user) {
 				return res.status(401).json(
