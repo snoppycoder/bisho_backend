@@ -1,4 +1,4 @@
-import app from './app.js'
+import { Router } from 'express';
 import loansRouter from './controllers/loans.controller.js';
 import dashboardRouter from './controllers/dashboard.controller.js';
 import membersRouter from './controllers/members.controller.js';
@@ -10,21 +10,22 @@ import notificationRouter from './controllers/notification/notification.controll
 import adminSignupRouter from './controllers/auth/admin/signup.auth.js';
 // import reportRouter from './controllers/report.controller.js';
 // import salaryRouter from './controllers/importSalary.controller.js';
+const router = Router();
 
-app.use('/api/dashboard', dashboardRouter);
-app.use('/api/loans', loansRouter);
-app.use('/api/members', membersRouter);
-app.use('/api/membership', membershipRouter);
-app.use('/api/notifications', notificationRouter);
-// app.use('/api/report', reportRouter);
-// app.use('/api/importSalary', salaryRouter);
+router.use('/dashboard', dashboardRouter);
+router.use('/loans', loansRouter);
+router.use('/members', membersRouter);
+router.use('/membership', membershipRouter);
+router.use('/notifications', notificationRouter);
+// router.use('/report', reportRouter);
+// router.use('/importSalary', salaryRouter);
 
 
 // Might add the auth routes
 
-app.use('/api/auth/login', authLoginRouter)
-app.use('/api/auth/logout', authLogoutRouter)
-app.use('/api/auth/session', sessionRouter);
-app.use("/api/auth/register", adminSignupRouter);
+router.use('/auth/login', authLoginRouter)
+router.use('/auth/logout', authLogoutRouter)
+router.use('/auth/session', sessionRouter);
+router.use("/auth/register", adminSignupRouter);
 
-
+export default router;
